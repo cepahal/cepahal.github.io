@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import Glyph from './Glyph';
 
 interface AboutLetterProps {
   visible: boolean;
@@ -53,12 +54,12 @@ export default function AboutLetter({ visible, dialogRef, onClose, onExplore }: 
           <h1>Hi, I’m Grant Andrews.</h1>
           <p>I'm an ECE/CS Student at Duke that's interested in optimizing embedded systems.</p>
           <p>Somewhere between software, tiny circuits, and playful interfaces is my favorite place to work.</p>
-          <div className="letter-links"><a href="mailto:grant.andrews@duke.edu">Say hello ↗</a><a href="https://github.com/cepahal" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+          <div className="letter-links"><a href="mailto:grant.andrews@duke.edu">Say hello <Glyph name="arrow" /></a><a href="https://github.com/cepahal" target="_blank" rel="noopener noreferrer">GitHub <Glyph name="arrow" /></a></div>
           <button className="paper-button" onClick={() => closeAndZip('explore')}>Explore my projects →</button>
-          <p className="letter-footnote">Move your mouse away to tuck this note into the corner.</p>
+          <p className="letter-footnote"><span className="pointer-only">Move your mouse away to tuck this note into the corner.</span><span className="touch-only">Tap outside the letter to tuck it into the corner.</span></p>
         </article>
         <div className="envelope-front" aria-hidden="true" />
-        <button className="open-mail" onClick={handleOpen} aria-label="Open the letter"><span className="seal" aria-hidden="true">✳</span><span className="mail-caption">click to open</span></button>
+        <button className="open-mail" onClick={handleOpen} aria-label="Open the letter"><span className="seal" aria-hidden="true"><Glyph name="asterisk" /></span><span className="mail-caption"><span className="pointer-only">click to open</span><span className="touch-only">tap to open</span></span></button>
       </div>
     </div>
     <button className="skip-intro" onClick={() => closeAndZip('explore')}>Skip to the projects →</button>

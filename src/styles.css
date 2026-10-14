@@ -441,13 +441,53 @@ button { border: 0; }
   .topic-button { font-size: .72rem; gap: 3px; } .topic-nav { left: 4vw; width: 19vw; } .project-scene { padding-left: 26vw; padding-right: 7vw; }
 }
 @media (max-width: 640px) {
-  .room { padding: 110px 0 120px; }
+  .room { padding: 72px 0 96px; }
+  .room-header { margin-bottom: 18px; }
   .taped-title { min-width: 0; padding-inline: 22px; } .taped-title::after, .taped-title .tape { width: 40px; }
-  .card-title { font-size: 1.2rem; } .card-description { min-height: 0; }
-  .mail-dock { top: 35px; right: 28px; height: 50px; } .project-scene { padding: 95px 30px 65px 65px; }
-  .topic-nav { left: 18px; top: 125px; bottom: 90px; width: 40px; } .topic-heading, .topic-label, .topic-progress { display: none; }
-  .topic-list { height: 55vh; } .close-project { top: 35px; right: 28px; }
-  .journal .hero-cover { padding: 7px; } .journal .content-sheet { padding: 22px; } .journal h1 { font-size: 2rem; }
+  .cards { --card-w: min(264px, 72vw); padding: 24px 0; }
+  .card-title { font-size: 1.2rem; } .card-description { min-height: 0; font-size: .8rem; }
+  .card-type { font-size: .62rem; } .card-footer { font-size: .68rem; }
+  .mail-dock { top: 24px; right: 16px; width: 60px; height: 44px; } .mail-dock svg { width: 60px; }
+  .project-scene { padding: 68px 34px 56px; }
+  .journal .hero-cover { padding: 7px; } .journal .content-sheet { padding: 22px 20px; } .journal h1 { font-size: 2rem; }
+  .intro { --lm: clamp(48px, 8vh, 96px); --lh: clamp(340px, calc(var(--vh) - 320px), 460px); }
+  .letter { padding: 18px 20px; }
+  .letter h1 { font-size: 1.5rem; line-height: 1.15; margin: 6px 0 12px; }
+  .letter p { font-size: .85rem; }
+  .letter .eyebrow { font-size: .58rem; letter-spacing: .12em; }
+  .portrait { width: 68px; height: 68px; margin: 0 0 8px 10px; }
+}
+/* Phones in either orientation. PaperFrame.tsx uses the same query to halve the border. */
+@media (max-width: 640px), (pointer: coarse) and (max-height: 500px) {
+  .topic-nav { display: none; }
+  .close-project {
+    top: 12px; right: 12px; width: 42px; height: 42px; padding: 0; border-radius: 50%; rotate: 0deg;
+    background: #292c29e6; box-shadow: 0 3px 0 rgba(0,0,0,0.3); font-size: 2rem; line-height: 1; text-shadow: none;
+  }
+  .journal .chapter { color: #a44840; }
+  .journal .lead { color: #625c50; }
+  .intro.open .mail-caption { opacity: 0; }
+}
+@media (pointer: coarse) and (max-height: 500px) {
+  .room { padding: 30px 0 26px; }
+  .room-header { margin-bottom: 2px; }
+  .taped-title { min-width: 0; padding: 4px 36px 9px; font-size: 1.6rem; } .taped-title::after, .taped-title .tape { width: 40px; height: 22px; }
+  .cards { --card-w: 200px; padding: 12px 0; }
+  .card-description { display: none; }
+  .mail-dock { top: 18px; right: 22px; width: 60px; height: 44px; } .mail-dock svg { width: 60px; }
+  .project-scene { padding: 40px 10vw 36px; }
+  .intro { --lm: 20px; }
+}
+.glyph-icon, .touch-only { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .glyph-text, .pointer-only { display: none; }
+  .touch-only { display: inline; }
+  .glyph-icon { display: inline-block; width: .9em; height: .9em; vertical-align: -.1em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .seal .glyph-icon { display: block; width: .8em; height: .8em; stroke-width: 1.3; }
+  /* Rings from programmatic focus, and hover states that stick after a tap. */
+  .open-mail:focus-visible, .letter:focus-visible, .project-scene:focus-visible { outline: none; }
+  .project-card:hover:not(:focus-visible) { transform: rotate(var(--tilt)); box-shadow: var(--shadow); }
+  .mail-dock:hover { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }

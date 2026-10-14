@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { projectIllustration, projects } from '../data/projects';
+import Glyph from './Glyph';
 
 interface RoomProps { onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
 const tilts = [-0.6, 0.8, -0.8, 1.2, -1.0];
@@ -133,7 +134,7 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
               }} onClick={e => { if (justDragged.current) { e.preventDefault(); justDragged.current = false; return; } onOpenProject(project.id, e.currentTarget); }}>
                 <img className="card-art" src={project.cover || projectIllustration(project.illustration)} alt={project.title} draggable="false" />
                 <span className="card-type">{project.type}</span><span className="card-title">{project.title}</span><span className="card-description">{project.summary}</span>
-                <span className="card-footer"><span>Open project</span><span aria-hidden="true">↗</span></span>
+                <span className="card-footer"><span>Open project</span><span aria-hidden="true"><Glyph name="arrow" /></span></span>
               </button>
             </div>;
           })}

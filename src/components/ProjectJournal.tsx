@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Project } from '../data/projects';
 import { projectIllustration } from '../data/projects';
+import Glyph from './Glyph';
 import PaperFrame from './PaperFrame';
 
 interface ProjectJournalProps { project: Project; onClose: () => void }
@@ -70,8 +71,8 @@ export default function ProjectJournal({ project, onClose }: ProjectJournalProps
       <figure className="hero-cover"><img src={image} alt={`${project.title} illustration`} /></figure>
       <header className="project-heading content-sheet"><span className="chapter">{project.type}</span><h1 id="project-title">{project.title}</h1><p className="lead">{project.summary}</p>
         <div className="tags">{project.tools.map(tool => <span key={tool}>{tool}</span>)}</div>
-        {project.github && <p><a href={project.github} target="_blank" rel="noopener noreferrer">View source on GitHub ↗</a></p>}
-        {project.demo && <p><a href={project.demo.href} target="_blank" rel="noopener noreferrer">{project.demo.label} ↗</a></p>}
+        {project.github && <p><a href={project.github} target="_blank" rel="noopener noreferrer">View source on GitHub <Glyph name="arrow" /></a></p>}
+        {project.demo && <p><a href={project.demo.href} target="_blank" rel="noopener noreferrer">{project.demo.label} <Glyph name="arrow" /></a></p>}
       </header>
       {project.sections.map((section, i) => <section className="content-sheet" id={`section-${i}`} key={`${section.title}-${i}`}><h2 className="project-heading">{section.title}</h2><p>{section.text}</p>{section.code && <pre className="code-sample"><code>{section.code}</code></pre>}</section>)}
       <footer className="journal-end content-sheet"><p>End of project notes</p><button className="paper-button" onClick={onClose}>Back to projects</button></footer>

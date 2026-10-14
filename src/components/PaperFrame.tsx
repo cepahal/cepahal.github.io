@@ -38,12 +38,17 @@ function fibers(side: Side, rand: () => number): string {
   return [0, 1, 2, 3].map(i => `${(i === inward ? 3 + rand() * 4 : 1.5 + rand() * 3.5).toFixed(1)}px`).join(' ');
 }
 
-function buildPile(w: number, h: number) {
+// Same query as the phone media blocks in styles.css.
+const PHONE = '(max-width: 640px), (pointer: coarse) and (max-height: 500px)';
+const measure = () => ({ w: window.innerWidth, h: window.innerHeight, phone: matchMedia(PHONE).matches });
+
+function buildPile(w: number, h: number, scale: number) {
   // Border depth scales with the viewport. Sheets are drawn a bit larger than the reference
   // size (fewer of them), then pushed further off-screen by however much the larger sheet's
   // inward corner would grow, so the border's reach into the room stays the same.
-  const t = Math.max(clamp(25, .05 * h, 55), clamp(17, .03 * w, 48));
-  const reference = Math.min(3 * t, clamp(80, .22 * Math.min(w, h), 200));
+  const depth = Math.max(clamp(25, .05 * h, 55), clamp(17, .03 * w, 48));
+  const t = scale * depth;
+  const reference = scale * Math.min(3 * depth, clamp(80, .22 * Math.min(w, h), 200));
   const size = reference * 1.18;
   const offscreen = (angle: number) => {
     const a = Math.abs(angle) * Math.PI / 180;
@@ -81,14 +86,14 @@ function buildPile(w: number, h: number) {
 }
 
 export default function PaperFrame() {
-  const [viewport, setViewport] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  const [viewport, setViewport] = useState(measure);
   useEffect(() => {
     let frame = 0;
-    const onResize = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => setViewport({ w: window.innerWidth, h: window.innerHeight })); };
+    const onResize = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => setViewport(measure())); };
     window.addEventListener('resize', onResize);
     return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(frame); };
   }, []);
-  const { size, pieces } = useMemo(() => buildPile(viewport.w, viewport.h), [viewport.w, viewport.h]);
+  const { size, pieces } = useMemo(() => buildPile(viewport.w, viewport.h, viewport.phone ? .5 : 1), [viewport.w, viewport.h, viewport.phone]);
   const sheet = (p: Piece) => ({
     left: p.x, top: p.y, width: size, height: size, zIndex: p.z,
     transform: `translate(-50%, -50%) rotate(${p.angle.toFixed(1)}deg)`,
