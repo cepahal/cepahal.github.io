@@ -1,3 +1,5 @@
+import type { BuildingId } from './campus';
+
 export interface ProjectSection {
   title: string;
   text: string;
@@ -13,6 +15,8 @@ export interface Project {
   tools: string[];
   cover?: string;
   illustration: 'game' | 'cad' | 'web';
+  /** Where the project lives on the campus map; one project per building. */
+  building?: BuildingId;
   github?: string;
   demo?: { label: string; href: string };
   sections: ProjectSection[];
@@ -30,13 +34,13 @@ export function projectIllustration(kind: Project['illustration'], detail = fals
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-// Add projects here: the room carousel and journal are generated from this list.
+// Add projects here: the room carousel, campus map and journal are generated from this list.
 export const projects: Project[] = [
   {
     id: 'zoomout', title: 'ZoomOut', type: 'Software', accent: '#7C9EC3',
     summary: 'A HackNC app that finds the full recording behind a viral political clip.',
     tools: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'Framer Motion', 'FastAPI', 'Gemini'],
-    cover: 'images/zoomout.jpg', illustration: 'web',
+    cover: 'images/zoomout.jpg', illustration: 'web', building: 'perkins',
     github: 'https://github.com/cepahal/HackNCQuantro',
     demo: { label: 'Try the live demo', href: 'https://quantro-ten.vercel.app' },
     sections: [
@@ -50,7 +54,7 @@ export const projects: Project[] = [
     id: 'skynest', title: 'SkyNest RPS', type: 'Software', accent: '#7C9EC3',
     summary: 'A simulator that turns rough Onshape CAD into a robot on an FRC field.',
     tools: ['Python', 'PyBullet', 'PyQt5', 'Onshape', 'URDF', 'PyInstaller'],
-    cover: 'images/skynest-rps.jpg', illustration: 'cad',
+    cover: 'images/skynest-rps.jpg', illustration: 'cad', building: 'allen',
     github: 'https://github.com/cepahal/SkyNest',
     sections: [
       { title: 'The idea', text: 'At FRC kickoff, everyone on the team has ideas, but only a few people can CAD them, and even fewer can tell whether they’ll work on the field. I wanted a way to take a quick Onshape mechanism and watch it drive, lift, and score on the actual game field within a few minutes.' },
@@ -63,7 +67,7 @@ export const projects: Project[] = [
     id: 'frc-2026-robot', title: '2026 FRC Robot', type: 'Hardware', accent: '#80EF80',
     summary: 'Team 4328’s 2026 robot, which I designed in Onshape and fabricated.',
     tools: ['Onshape', 'CAD', 'Fabrication', 'FRC'],
-    cover: 'images/frc-2026-robot.jpg', illustration: 'cad',
+    cover: 'images/frc-2026-robot.jpg', illustration: 'cad', building: 'wallace-wade',
     demo: { label: 'Open the CAD in Onshape', href: 'https://cad.onshape.com/documents/7fb9db58b37623c19d209d1e/w/192299b39688d4f79864343b/e/6ccd52fcbe62c438319f40db' },
     sections: [
       { title: 'The robot', text: 'This is Team 4328’s robot for the 2026 FRC season. I designed the entire model in Onshape and then handled all of the real-world fabrication.' },
@@ -75,7 +79,7 @@ export const projects: Project[] = [
     id: 'i3t-handoff-dataset', title: 'I3T Handoff Dataset', type: 'Software', accent: '#7C9EC3',
     summary: 'Manipulation scenes for an AR robot-handoff project at Duke’s I3T Lab.',
     tools: ['Robotics', 'Computer vision', 'Edge ML', 'Dataset design', 'JSON'],
-    cover: 'images/i3t-scene.jpg', illustration: 'cad',
+    cover: 'images/i3t-scene.jpg', illustration: 'cad', building: 'gross',
     github: 'https://github.com/cepahal/I3TProject1Dataset',
     sections: [
       { title: 'The project', text: 'At Duke’s I3T (Interactive Internet of Intelligent Things) Lab, we’re working toward an AR system that shows a person how to orient and grip an object so a robot can take it from them more easily. Tony Sang and I are starting on the piece that builds a quick, approximate 3D model of whatever object the headset is looking at. The first step is finding out which existing reconstruction methods are fast and accurate enough to be useful.' },
@@ -129,7 +133,7 @@ export const projects: Project[] = [
     id: 'firststep', title: 'FirstStep', type: 'Software', accent: '#7C9EC3',
     summary: 'An iPhone app for parents of young kids, built for a Duke pitch event.',
     tools: ['Swift', 'SwiftUI', 'iOS', 'UI design'],
-    cover: 'images/firststep.jpg', illustration: 'web',
+    cover: 'images/firststep.jpg', illustration: 'web', building: 'brodhead',
     github: 'https://github.com/brainnourish/FirstStep',
     sections: [
       { title: 'The idea', text: 'FirstStep is an iOS app for parents of kids up to age five. It builds a daily schedule around your child’s age, serves a tip of the day, lays out developmental milestones with their full normal ranges, and has an Ask tab for questions.' },
@@ -140,7 +144,7 @@ export const projects: Project[] = [
     id: 'rebloom', title: 'Re:Bloom', type: 'Software', accent: '#7C9EC3',
     summary: 'A Unity puzzle game inside a game, made for TSA Video Game Design 2026.',
     tools: ['Unity', 'C#', 'Game design', 'WebGL'],
-    cover: 'images/rebloom.jpg', illustration: 'game',
+    cover: 'images/rebloom.jpg', illustration: 'game', building: 'few',
     demo: { label: 'Play on itch.io', href: 'https://cepahal.itch.io/rebloom' },
     sections: [
       { title: 'The idea', text: 'Re:Bloom is a game inside a game. It moves between a pixel-art world and a 3D room built around an old CRT computer, a stack of floppy disks, and a keypad, and you solve puzzles to help heal the world around your player.' },
@@ -152,7 +156,7 @@ export const projects: Project[] = [
     id: 'wizards-tower', title: 'Wizard’s Tower', type: 'Software', accent: '#7C9EC3',
     summary: 'A pixel-art Unity game about descending a wizard’s tower, if you dare.',
     tools: ['Unity', 'C#', 'Pixel art', 'WebGL'],
-    cover: 'images/wizards-tower.jpg', illustration: 'game',
+    cover: 'images/wizards-tower.jpg', illustration: 'game', building: 'chapel',
     demo: { label: 'Play on itch.io', href: 'https://cepahal.itch.io/wizardstower' },
     sections: [
       { title: 'The idea', text: 'Wizard’s Tower is a browser game built in Unity: you start at the top of a wizard’s tower and work your way down.' },

@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { projectIllustration, projects } from '../data/projects';
+import CampusMap from './CampusMap';
 import Glyph from './Glyph';
 
-interface RoomProps { onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
+interface RoomProps { active: boolean; onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
 const tilts = [-0.6, 0.8, -0.8, 1.2, -1.0];
+const cardsIcon = <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="5" width="5" height="10" rx="1" /><rect x="7.5" y="3.5" width="5" height="13" rx="1" /><rect x="13.5" y="5" width="5" height="10" rx="1" /></svg>;
+const mapIcon = <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 5.5 7 3.5l6 2 5-2v11l-5 2-6-2-5 2Z" /><path d="M7 3.5v11M13 5.5v11" /></svg>;
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 function quadMatrix(w: number, h: number, q: number[][]): string {
@@ -21,7 +24,7 @@ function quadMatrix(w: number, h: number, q: number[][]): string {
   return `matrix3d(${a / w},${d / w},0,${g / w},${b / h},${e / h},0,${k / h},0,0,1,0,${c},${f},0,1)`;
 }
 
-export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
+export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const [ring, setRing] = useState<number>(Math.max(1, projects.length));
@@ -31,6 +34,15 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
   const [dragging, setDragging] = useState(false);
   const [slotPositions, setSlotPositions] = useState<number[]>([]);
   const reduced = useRef(false);
+  const [view, setView] = useState<'map' | 'cards'>('map');
+  const [switching, setSwitching] = useState(false);
+  const [mapFailed, setMapFailed] = useState(false);
+  const showMap = view === 'map' && !mapFailed;
+  const switchView = () => {
+    if (switching) return;
+    setSwitching(true);
+    window.setTimeout(() => { setView(current => current === 'map' ? 'cards' : 'map'); setSwitching(false); }, reduced.current ? 0 : 180);
+  };
 
   const layout = useCallback(() => {
     const box = boxRef.current; if (!box) return;
@@ -73,8 +85,9 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
     return () => { observer.disconnect(); cancelAnimationFrame(frame.current); };
   }, [layout]);
 
+  // Re-measured whenever the card view mounts (it is unmounted while the campus map is showing).
   useEffect(() => {
-    const cards = cardsRef.current; if (!cards) return;
+    const cards = cardsRef.current; if (showMap || !cards) return;
     const measure = () => {
       const first = cards.querySelector<HTMLElement>('.slot'); if (!first) return;
       const cardW = first.offsetWidth, gap = parseFloat(getComputedStyle(cards).columnGap) || 0;
@@ -82,8 +95,8 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
       const needed = (window.innerWidth + 2 * cardW + 2 * step.current) / step.current;
       setRing(projects.length * Math.max(1, Math.ceil(needed / projects.length)));
     };
-    measure(); window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure);
-  }, []);
+    measure(); render(); window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure);
+  }, [showMap, render]);
 
   useEffect(() => { render(); }, [ring, render]);
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -109,15 +122,21 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
 
   const cards = Array.from({ length: ring }, (_, k) => ({ project: projects[k % projects.length], k }));
   return <>
-    <main className="room wallpaper" id="room">
+    <main className={`room wallpaper${showMap ? ' room--map' : ''}${switching ? ' is-switching' : ''}`} id="room">
       <div className="box-interior" id="box-interior" ref={boxRef} aria-hidden="true">
         <div className="wall wall-left"><div className="plane plane-dots" data-plane="left" /></div>
         <div className="wall wall-right"><div className="plane plane-dots" data-plane="right" /></div>
         <div className="wall wall-top"><div className="plane plane-dots" data-plane="top" /></div>
         <div className="wall wall-bottom"><div className="plane plane-floor" data-plane="floor" /></div><div className="box-shadow-overlay" />
       </div>
-      <header className="room-header"><h1 className="taped-title">PROJECTS<span className="tape" aria-hidden="true" /></h1></header>
-      <section className="carousel" aria-roledescription="carousel" aria-label="Projects" onKeyDown={e => { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); }} onWheel={e => {
+      <header className="room-header">
+        <h1 className="taped-title">PROJECTS<span className="tape" aria-hidden="true" /></h1>
+        {showMap && <p className="campus-hint" aria-hidden="true">
+          <span className="pointer-only">drag to spin · hover a building to peek · click to open</span>
+          <span className="touch-only">drag to spin · tap a building to peek</span>
+        </p>}
+      </header>
+      {showMap ? <CampusMap active={active} onOpenProject={onOpenProject} onFail={() => setMapFailed(true)} /> : <section className="carousel room-view" aria-roledescription="carousel" aria-label="Projects" onKeyDown={e => { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); }} onWheel={e => {
         const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (!raw) return;
         e.preventDefault(); const px = e.deltaMode === 1 ? raw * 16 : raw; wheelDirection.current = Math.sign(px);
         pos.current += px * 1.6 / step.current; target.current = pos.current; render();
@@ -139,8 +158,9 @@ export default function Room({ onOpenProject, onOpenAbout }: RoomProps) {
             </div>;
           })}
         </div>
-      </section>
+      </section>}
     </main>
+    {!mapFailed && <button type="button" className="view-toggle" onClick={switchView}>{showMap ? <>{cardsIcon}Plain Project View</> : <>{mapIcon}Campus Map View</>}</button>}
     <button className="mail-dock" aria-label="Open about me letter" onClick={onOpenAbout}>
       <svg viewBox="0 0 40 28" aria-hidden="true"><rect x="1" y="1" width="38" height="26" rx="2" fill="#e6524a" stroke="#c43f38" strokeWidth="2"/><path d="m1 2 19 14L39 2" fill="none" stroke="#c43f38" strokeWidth="2"/><circle cx="20" cy="15" r="5" fill="#FAF9F6"/></svg>
     </button>

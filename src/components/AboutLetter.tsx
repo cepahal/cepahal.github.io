@@ -17,7 +17,8 @@ export default function AboutLetter({ visible, dialogRef, onClose, onExplore }: 
     const dialog = dialogRef.current; if (!dialog) return;
     if (visible && !dialog.open) {
       dialog.showModal(); setOpened(false); setZipping(false); setAutoOpen(hasOpened);
-      if (hasOpened) window.setTimeout(() => { setOpened(true); requestAnimationFrame(() => letterRef.current?.focus()); }, 100);
+      if (letterRef.current) letterRef.current.scrollTop = 0; // reopening always starts at the top of the letter
+      if (hasOpened) window.setTimeout(() => { setOpened(true); requestAnimationFrame(() => letterRef.current?.focus({ preventScroll: true })); }, 100);
       else requestAnimationFrame(() => dialog.querySelector<HTMLButtonElement>('.open-mail')?.focus());
     }
     if (!visible && dialog.open && !zipping) dialog.close();
@@ -50,10 +51,10 @@ export default function AboutLetter({ visible, dialogRef, onClose, onExplore }: 
       <div className="mail-stage" id="mail-stage" ref={stageRef} onMouseLeave={handleLeave}>
         <div className="envelope-back" aria-hidden="true" /><div className="envelope-flap" aria-hidden="true" />
         <article className="letter" id="letter" ref={letterRef} tabIndex={-1} inert={!opened}>
-          <img className="portrait" src="images/headshot.jpg" alt="Grant Andrews" /><span className="eyebrow">A NOTE FROM THE MAKER</span>
+          <img className="portrait" src="images/headshot.jpg" alt="Grant Andrews" /><span className="eyebrow">ABOUT ME</span>
           <h1>Hi, I’m Grant Andrews.</h1>
-          <p>I'm an ECE/CS Student at Duke that's interested in optimizing embedded systems.</p>
-          <p>Somewhere between software, tiny circuits, and playful interfaces is my favorite place to work.</p>
+          <p>I'm a first-year ECE and CS double major at Duke. I like anything related to computers and technology, but I'm specifically interested in robotics and finding ways to make things more efficient. I'm a fast learner and I'm eager to figure out how any and all systems work. I have a particular interest in learning more about parallel processing (specifically FPGAs) and computer architecture in general, though I'm still very passionate about SWE. One day, I see myself working to make humanoid robots more energy efficient and adaptive to unfamiliar situations. Outside of academics, I like golfing, rock music, trying new restaurants, and going to hackathons (I'll be at HackPrinceton this fall!).</p>
+          <p>I've had first-hand experience working on projects close to the cutting edge of technology at my lab, and I've honed my logistics skills during my time so far at HackDuke. I'm hoping to get a taste of a more structured work environment that works toward a goal that may never have been achieved before. I'm keeping things broad, as I'm open to any opportunity that presents itself. I hope to learn how to apply what I already know, and what I learn in my classes, to very technical problems that can't be solved easily or on the first try.</p>
           <div className="letter-links"><a href="mailto:grant.andrews@duke.edu">Say hello <Glyph name="arrow" /></a><a href="https://github.com/cepahal" target="_blank" rel="noopener noreferrer">GitHub <Glyph name="arrow" /></a></div>
           <button className="paper-button" onClick={() => closeAndZip('explore')}>Explore my projects →</button>
           <p className="letter-footnote"><span className="pointer-only">Move your mouse away to tuck this note into the corner.</span><span className="touch-only">Tap outside the letter to tuck it into the corner.</span></p>

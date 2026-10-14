@@ -51,10 +51,10 @@ export default function App() {
     </svg>
     <div className="grain" aria-hidden="true" />
     {scene !== 'journal' && <PaperFrame />}
-    <Room onOpenProject={openProject} onOpenAbout={openAbout} />
+    <Room active={scene === 'room'} onOpenProject={openProject} onOpenAbout={openAbout} />
     <AboutLetter visible={scene === 'about'} dialogRef={dialogRef} onClose={closeAbout} onExplore={closeAbout} />
     {scene === 'journal' && project && <ProjectJournal key={project.id} project={project} onClose={closeProject} />}
     <TransitionScreen visible={transitioning} />
-    <CustomCursor modalTarget={dialogRef.current} />
+    <CustomCursor modalTarget={dialogRef.current} modalOpen={scene === 'about'} />
   </>;
 }
