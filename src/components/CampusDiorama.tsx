@@ -2,8 +2,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
-import { CanvasTexture, MeshLambertMaterial, SRGBColorSpace, Vector3 } from 'three';
-import type { BufferGeometry, Group, Mesh } from 'three';
+import { CanvasTexture, MeshLambertMaterial, MeshStandardMaterial, SRGBColorSpace, Vector3 } from 'three';
+import type { BufferGeometry, DirectionalLight, Group, HemisphereLight, Mesh, MeshLambertMaterialParameters, SpotLight } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { campusBuildings } from '../data/campus';
 import type { BuildingId } from '../data/campus';
@@ -14,6 +14,19 @@ import type { V3 } from './campus/kit';
 import { buildingIds, sites, toWorld } from './campus/landmarks';
 import { DEPTH, HALF, buildCampus } from './campus/scenery';
 import Glyph from './Glyph';
+import { aimLamp, lamp, onLampFrame } from './HangingLamp';
+
+// Capable desktops get physically based materials (warm highlights from the lamp) and lamp shadows; phones,
+// low-core or low-memory machines and software GPUs get Lambert shading, smaller shadow maps and a lower DPR cap.
+type Tier = 'high' | 'low';
+function guessTier(): Tier {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const weak = matchMedia('(pointer: coarse)').matches || (nav.hardwareConcurrency ?? 8) < 4 || (nav.deviceMemory ?? 8) < 4;
+  return weak ? 'low' : 'high';
+}
+const SOFTWARE_GPU = /swiftshader|llvmpipe|software|basic render/i;
+const surface = (tier: Tier, params: MeshLambertMaterialParameters = {}) =>
+  tier === 'high' ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0, ...params }) : new MeshLambertMaterial({ vertexColors: true, ...params });
 
 interface Spot { id: BuildingId; name: string; project: Project; anchor: V3; dot: V3 }
 
@@ -101,7 +114,11 @@ function CameraRig({ reduced, onSpin }: { reduced: boolean; onSpin: (spinning: b
     camera.updateProjectionMatrix();
     // Any height left over (tall, narrow screens) goes mostly above the block, where the speech bubbles open.
     const spare = Math.max(0, room - 2 * frame.halfH * camera.zoom);
-    const y = frame.midY + ((top - bottom) / 2 + 0.35 * spare) / (Math.sin(POLAR) * camera.zoom);
+    const shift = (top - bottom) / 2 + 0.2 * spare;
+    const y = frame.midY + shift / (Math.sin(POLAR) * camera.zoom);
+    // Tell the hanging lamp where the block lands on screen, so its pool of light frames it.
+    const box = gl.domElement.getBoundingClientRect();
+    aimLamp({ x: box.left + size.width / 2, y: box.top + size.height / 2 + shift, rx: frame.halfW * camera.zoom, ry: frame.halfH * camera.zoom });
     camera.position.y += y - targetY.current;
     targetY.current = y;
     if (controls.current) {
@@ -155,13 +172,14 @@ interface LandmarkProps {
   active: boolean;
   intro: RefObject<number | null>;
   reduced: boolean;
+  tier: Tier;
   handlers: BuildingHandlers;
 }
 
-function Landmark({ id, geometry, spot, active, intro, reduced, handlers }: LandmarkProps) {
+function Landmark({ id, geometry, spot, active, intro, reduced, tier, handlers }: LandmarkProps) {
   const site = sites[id];
   const body = useRef<Group>(null);
-  const material = useMemo(() => new MeshLambertMaterial({ vertexColors: true, emissive: '#FFF1D0', emissiveIntensity: 0 }), []);
+  const material = useMemo(() => surface(tier, { emissive: '#FFF1D0', emissiveIntensity: 0 }), [tier]);
 
   useFrame((state, dt) => {
     const group = body.current;
@@ -239,16 +257,53 @@ function OverlayTracker({ activeId, intro, bubbleRef, dotRefs }: OverlayProps) {
   return null;
 }
 
+/**
+ * Daylight plus the hanging lamp. As the lamp comes down (lamp.focus → 1) the daylight dims and a warm spotlight
+ * takes over; the spotlight always sits up toward the top of the screen, where the lamp hangs, and sways with it.
+ */
+function Lights({ tier }: { tier: Tier }) {
+  const sky = useRef<HemisphereLight>(null), sun = useRef<DirectionalLight>(null), spot = useRef<SpotLight>(null);
+  const camera = useThree(state => state.camera);
+  const invalidate = useThree(state => state.invalidate);
+  useEffect(() => onLampFrame(() => invalidate()), [invalidate]);
+  useFrame(() => {
+    const f = lamp.focus, swing = (lamp.swing * Math.PI) / 180;
+    if (sky.current) sky.current.intensity = 1.7 - 0.5 * f;
+    if (sun.current) sun.current.intensity = 1.9 - 0.75 * f;
+    const light = spot.current;
+    if (!light) return;
+    // Toward the camera and across the screen, measured from above the block.
+    const azimuth = Math.atan2(camera.position.x, camera.position.z), sa = Math.sin(azimuth), ca = Math.cos(azimuth);
+    const lean = Math.sin(swing) * 4, reach = Math.tan(swing) * 14;
+    light.position.set(sa * 4 + ca * lean, 16, ca * 4 - sa * lean);
+    light.target.position.set(ca * reach, 0, -sa * reach);
+    light.target.updateMatrixWorld();
+    light.intensity = 1.6 * f;
+    light.angle = 0.72 + (1 - f) * 0.4; // narrows onto the block as the lamp lowers
+  });
+  return <>
+    <hemisphereLight ref={sky} args={['#EEF3FF', '#F3E3C4', 1.7]} />
+    <directionalLight ref={sun} castShadow position={[-7, 13, 8]} intensity={1.9} shadow-mapSize={tier === 'high' ? [2048, 2048] : [1024, 1024]}
+      shadow-bias={-0.0004} shadow-normalBias={0.035} shadow-radius={3}>
+      <orthographicCamera attach="shadow-camera" args={[-11, 11, 11, -11, 1, 40]} />
+    </directionalLight>
+    {/* Stays in the scene at zero intensity when the lamp is up, so switching never recompiles shaders. */}
+    <spotLight ref={spot} color="#FFC983" intensity={0} angle={1.1} penumbra={0.65} decay={0} castShadow={tier === 'high'}
+      shadow-mapSize={[512, 512]} shadow-bias={-0.0006} shadow-normalBias={0.04} shadow-radius={4} shadow-camera-near={2} shadow-camera-far={40} />
+  </>;
+}
+
 interface SceneProps extends Omit<OverlayProps, 'intro'> {
   introOn: boolean;
   reduced: boolean;
+  tier: Tier;
   onSpin: (spinning: boolean) => void;
   handlers: BuildingHandlers;
 }
 
-function Scene({ activeId, introOn, reduced, bubbleRef, dotRefs, onSpin, handlers }: SceneProps) {
+function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, handlers }: SceneProps) {
   const campus = useMemo(buildCampus, []);
-  const matte = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
+  const matte = useMemo(() => surface(tier), [tier]);
   const shadow = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 128;
@@ -280,17 +335,14 @@ function Scene({ activeId, introOn, reduced, bubbleRef, dotRefs, onSpin, handler
   });
 
   return <>
-    <hemisphereLight args={['#EEF3FF', '#F3E3C4', 1.7]} />
-    <directionalLight castShadow position={[-7, 13, 8]} intensity={1.9} shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.035} shadow-radius={3}>
-      <orthographicCamera attach="shadow-camera" args={[-11, 11, 11, -11, 1, 40]} />
-    </directionalLight>
+    <Lights tier={tier} />
     <CameraRig reduced={reduced} onSpin={onSpin} />
     <mesh geometry={campus.ground} material={matte} receiveShadow />
     <mesh geometry={campus.decals} material={matte} receiveShadow />
     <mesh geometry={campus.props} material={matte} castShadow receiveShadow />
     <mesh ref={trees} geometry={campus.trees} material={matte} castShadow receiveShadow />
     {buildingIds.map(id => <Landmark key={id} id={id} geometry={campus.landmarks[id]} spot={spots[id]} active={activeId === id}
-      intro={intro} reduced={reduced} handlers={handlers} />)}
+      intro={intro} reduced={reduced} tier={tier} handlers={handlers} />)}
     <mesh position={[0, -DEPTH - 0.3, 0]} rotation-x={-Math.PI / 2}>
       <planeGeometry args={[2 * HALF + 7, 2 * HALF + 7]} />
       <meshBasicMaterial map={shadow} transparent depthWrite={false} />
@@ -329,6 +381,7 @@ export default function CampusDiorama({ active, onOpenProject }: CampusDioramaPr
   const hoverTimer = useRef(0), pointer = useRef('mouse'), under = useRef<BuildingId | null>(null);
   const press = useRef({ x: 0, y: 0 }), last = useRef({ x: -1, y: -1 });
   const reduced = useMemo(() => matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  const [tier, setTier] = useState<Tier>(guessTier);
   // Keyboard focus beats mouse hover, which beats a touch selection; nothing shows mid-spin.
   const activeId = spinning ? null : focused ?? hovered ?? selected;
   const activeSpot = activeId ? spots[activeId] : undefined;
@@ -399,9 +452,14 @@ export default function CampusDiorama({ active, onOpenProject }: CampusDioramaPr
       e.stopPropagation();
       open(activeSpot.id, null);
     }}>
-    <Canvas orthographic frameloop="demand" shadows="percentage" flat dpr={[1, 2]} camera={{ position: START, zoom: 20, near: 0.1, far: 100 }}
-      onPointerMissed={() => setSelected(null)}>
-      <Scene activeId={activeId} introOn={active} reduced={reduced} bubbleRef={bubbleRef} dotRefs={dotRefs} onSpin={setSpinning} handlers={handlers} />
+    <Canvas orthographic frameloop="demand" shadows="percentage" flat dpr={tier === 'high' ? [1, 2] : [1, 1.5]} camera={{ position: START, zoom: 20, near: 0.1, far: 100 }}
+      onPointerMissed={() => setSelected(null)}
+      onCreated={({ gl }) => {
+        const context = gl.getContext(), info = context.getExtension('WEBGL_debug_renderer_info');
+        if (info && SOFTWARE_GPU.test(String(context.getParameter(info.UNMASKED_RENDERER_WEBGL)))) setTier('low');
+      }}>
+      {/* Keyed on the tier so a downgrade rebuilds lights and shadow maps at their new sizes. */}
+      <Scene key={tier} activeId={activeId} introOn={active} reduced={reduced} tier={tier} bubbleRef={bubbleRef} dotRefs={dotRefs} onSpin={setSpinning} handlers={handlers} />
     </Canvas>
     {spotList.map((spot, i) => <span key={spot.id} className="campus-dot" ref={el => { dotRefs.current[i] = el; }} aria-hidden="true" />)}
     {activeSpot && <Bubble key={activeSpot.id} spot={activeSpot} focused={focused === activeSpot.id} bubbleRef={bubbleRef} />}

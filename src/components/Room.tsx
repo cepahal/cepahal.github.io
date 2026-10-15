@@ -3,6 +3,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { projectIllustration, projects } from '../data/projects';
 import CampusMap from './CampusMap';
 import Glyph from './Glyph';
+import HangingLamp from './HangingLamp';
 
 interface RoomProps { active: boolean; onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
 const tilts = [-0.6, 0.8, -0.8, 1.2, -1.0];
@@ -38,6 +39,11 @@ export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) 
   const [switching, setSwitching] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const showMap = view === 'map' && !mapFailed;
+  // The lamp waits for the room's first appearance, then follows the view the toggle is heading to.
+  const [seen, setSeen] = useState(false);
+  useEffect(() => { if (active) setSeen(true); }, [active]);
+  const heading = switching ? (view === 'map' ? 'cards' : 'map') : view;
+  const lampLit = seen && !mapFailed && heading === 'map';
   const switchView = () => {
     if (switching) return;
     setSwitching(true);
@@ -159,6 +165,7 @@ export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) 
           })}
         </div>
       </section>}
+      <HangingLamp lit={lampLit} />
     </main>
     {!mapFailed && <button type="button" className="view-toggle" onClick={switchView}>{showMap ? <>{cardsIcon}Plain Project View</> : <>{mapIcon}Campus Map View</>}</button>}
     <button className="mail-dock" aria-label="Open about me letter" onClick={onOpenAbout}>
