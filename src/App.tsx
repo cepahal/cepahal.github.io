@@ -18,6 +18,8 @@ export default function App() {
   const busy = useRef(false);
 
   const closeAbout = useCallback(() => setScene(current => current === 'about' ? 'room' : current), []);
+  const [plainRequests, setPlainRequests] = useState(0);
+  const skipToCards = useCallback(() => setPlainRequests(n => n + 1), []);
   const openAbout = useCallback(() => setScene('about'), []);
   const openProject = useCallback(async (id: string, opener: HTMLElement | null) => {
     if (busy.current || scene !== 'room') return;
@@ -50,9 +52,10 @@ export default function App() {
       </filter>
     </svg>
     <div className="grain" aria-hidden="true" />
-    {scene !== 'journal' && <PaperFrame />}
-    <Room active={scene === 'room'} onOpenProject={openProject} onOpenAbout={openAbout} />
-    <AboutLetter visible={scene === 'about'} dialogRef={dialogRef} onClose={closeAbout} onExplore={closeAbout} />
+    {/* One frame for the whole site; it lifts above the project notes while they're open (body.journal-open). */}
+    <PaperFrame />
+    <Room active={scene === 'room'} plainRequests={plainRequests} onOpenProject={openProject} onOpenAbout={openAbout} />
+    <AboutLetter visible={scene === 'about'} dialogRef={dialogRef} onClose={closeAbout} onExplore={closeAbout} onSkip={skipToCards} />
     {scene === 'journal' && project && <ProjectJournal key={project.id} project={project} onClose={closeProject} />}
     <TransitionScreen visible={transitioning} />
     <CustomCursor modalTarget={dialogRef.current} modalOpen={scene === 'about'} />

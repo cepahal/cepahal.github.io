@@ -7,9 +7,11 @@ interface AboutLetterProps {
   dialogRef: RefObject<HTMLDialogElement | null>;
   onClose: () => void;
   onExplore: () => void;
+  /** "Skip to the projects": switch the room to the plain card view before the letter zips away. */
+  onSkip: () => void;
 }
 
-export default function AboutLetter({ visible, dialogRef, onClose, onExplore }: AboutLetterProps) {
+export default function AboutLetter({ visible, dialogRef, onClose, onExplore, onSkip }: AboutLetterProps) {
   const stageRef = useRef<HTMLDivElement>(null), letterRef = useRef<HTMLElement>(null), dockRef = useRef<HTMLElement | null>(null);
   const [opened, setOpened] = useState(false), [zipping, setZipping] = useState(false), [autoOpen, setAutoOpen] = useState(false), [hasOpened, setHasOpened] = useState(false);
 
@@ -57,13 +59,14 @@ export default function AboutLetter({ visible, dialogRef, onClose, onExplore }: 
           <p>I've had first-hand experience working on projects close to the cutting edge of technology at my lab, and I've honed my logistics skills during my time so far at HackDuke. I'm hoping to get a taste of a more structured work environment that works toward a goal that may never have been achieved before. I'm keeping things broad, as I'm open to any opportunity that presents itself. I hope to learn how to apply what I already know, and what I learn in my classes, to very technical problems that can't be solved easily or on the first try.</p>
           <div className="letter-links"><a href="mailto:grant.andrews@duke.edu">Say hello <Glyph name="arrow" /></a><a href="https://github.com/cepahal" target="_blank" rel="noopener noreferrer">GitHub <Glyph name="arrow" /></a></div>
           <button className="paper-button" onClick={() => closeAndZip('explore')}>Explore my projects →</button>
+          <a className="paper-button linkedin-button" href="https://www.linkedin.com/in/grant-andrews-71554b396/" target="_blank" rel="noopener noreferrer">LinkedIn <Glyph name="arrow" /></a>
           <p className="letter-footnote"><span className="pointer-only">Move your mouse away to tuck this note into the corner.</span><span className="touch-only">Tap outside the letter to tuck it into the corner.</span></p>
         </article>
         <div className="envelope-front" aria-hidden="true" />
         <button className="open-mail" onClick={handleOpen} aria-label="Open the letter"><span className="seal" aria-hidden="true"><Glyph name="asterisk" /></span><span className="mail-caption"><span className="pointer-only">click to open</span><span className="touch-only">tap to open</span></span></button>
       </div>
     </div>
-    <button className="skip-intro" onClick={() => closeAndZip('explore')}>Skip to the projects →</button>
+    <button className="skip-intro" onClick={() => { if (!zipping) onSkip(); closeAndZip('explore'); }}>Skip to the projects →</button>
   </dialog>;
 
   // Keep the envelope above the room and put the custom pointer in the dialog's top layer.

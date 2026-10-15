@@ -22,14 +22,15 @@ export default function CustomCursor({ modalTarget, modalOpen }: CustomCursorPro
     return () => cancelAnimationFrame(frame);
   }, [modalTarget]);
 
+  // Moved with transforms only, so following the mouse never triggers page layout.
+  const place = (el: HTMLElement | null, x: number, y: number) => { if (el) el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`; };
   // Each trail dot eases toward the one ahead of it; the loop stops once they have caught up.
   const draw = () => {
     let lead: { x: number; y: number } = pointer.current, moving = false;
     trail.current.forEach((dot, i) => {
       dot.x += (lead.x - dot.x) * 0.42; dot.y += (lead.y - dot.y) * 0.42;
       if (Math.abs(lead.x - dot.x) + Math.abs(lead.y - dot.y) > 0.3) moving = true;
-      const el = trailRefs.current[i];
-      if (el) { el.style.left = `${dot.x}px`; el.style.top = `${dot.y}px`; }
+      place(trailRefs.current[i], dot.x, dot.y);
       lead = dot;
     });
     frame.current = moving ? requestAnimationFrame(draw) : 0;
@@ -38,8 +39,8 @@ export default function CustomCursor({ modalTarget, modalOpen }: CustomCursorPro
   useLayoutEffect(() => {
     const cursor = cursorRef.current, layer = layerRef.current, { x, y, seen } = pointer.current;
     if (!cursor || !layer) return;
-    cursor.style.left = `${x}px`; cursor.style.top = `${y}px`; layer.hidden = !seen;
-    trail.current.forEach((dot, i) => { dot.x = x; dot.y = y; const el = trailRefs.current[i]; if (el) { el.style.left = `${x}px`; el.style.top = `${y}px`; } });
+    place(cursor, x, y); layer.hidden = !seen;
+    trail.current.forEach((dot, i) => { dot.x = x; dot.y = y; place(trailRefs.current[i], x, y); });
   });
   useEffect(() => {
     if (!enabled) return;
@@ -47,9 +48,10 @@ export default function CustomCursor({ modalTarget, modalOpen }: CustomCursorPro
     const move = (e: PointerEvent) => {
       pointer.current = { x: e.clientX, y: e.clientY, seen: true };
       const cursor = cursorRef.current; if (!cursor) return;
-      if (layerRef.current) layerRef.current.hidden = false;
-      cursor.style.left = `${e.clientX}px`; cursor.style.top = `${e.clientY}px`;
-      cursor.classList.toggle('hover', Boolean((e.target as Element | null)?.closest?.('button, a, [tabindex], .campus-stage.is-hot')));
+      if (layerRef.current?.hidden) layerRef.current.hidden = false;
+      place(cursor, e.clientX, e.clientY);
+      const hot = Boolean((e.target as Element | null)?.closest?.('button, a, [tabindex], .campus-stage.is-hot'));
+      if (cursor.classList.contains('hover') !== hot) cursor.classList.toggle('hover', hot);
       if (!frame.current) frame.current = requestAnimationFrame(draw);
     };
     const down = () => cursorRef.current?.classList.add('down'), up = () => cursorRef.current?.classList.remove('down');

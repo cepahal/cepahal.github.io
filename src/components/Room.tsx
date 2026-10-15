@@ -5,7 +5,7 @@ import CampusMap from './CampusMap';
 import Glyph from './Glyph';
 import HangingLamp from './HangingLamp';
 
-interface RoomProps { active: boolean; onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
+interface RoomProps { active: boolean; plainRequests: number; onOpenProject: (id: string, opener: HTMLElement | null) => void; onOpenAbout: () => void }
 const tilts = [-0.6, 0.8, -0.8, 1.2, -1.0];
 const cardsIcon = <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1.5" y="5" width="5" height="10" rx="1" /><rect x="7.5" y="3.5" width="5" height="13" rx="1" /><rect x="13.5" y="5" width="5" height="10" rx="1" /></svg>;
 const mapIcon = <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 5.5 7 3.5l6 2 5-2v11l-5 2-6-2-5 2Z" /><path d="M7 3.5v11M13 5.5v11" /></svg>;
@@ -25,7 +25,7 @@ function quadMatrix(w: number, h: number, q: number[][]): string {
   return `matrix3d(${a / w},${d / w},0,${g / w},${b / h},${e / h},0,${k / h},0,0,1,0,${c},${f},0,1)`;
 }
 
-export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) {
+export default function Room({ active, plainRequests, onOpenProject, onOpenAbout }: RoomProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const [ring, setRing] = useState<number>(Math.max(1, projects.length));
@@ -39,6 +39,8 @@ export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) 
   const [switching, setSwitching] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const showMap = view === 'map' && !mapFailed;
+  // "Skip to the projects" lands straight on the card view (the letter still covers the room, so no fade).
+  useEffect(() => { if (plainRequests) { setView('cards'); setSwitching(false); } }, [plainRequests]);
   // The lamp waits for the room's first appearance, then follows the view the toggle is heading to.
   const [seen, setSeen] = useState(false);
   useEffect(() => { if (active) setSeen(true); }, [active]);
@@ -169,7 +171,7 @@ export default function Room({ active, onOpenProject, onOpenAbout }: RoomProps) 
     </main>
     {!mapFailed && <button type="button" className="view-toggle" onClick={switchView}>{showMap ? <>{cardsIcon}Plain Project View</> : <>{mapIcon}Campus Map View</>}</button>}
     <button className="mail-dock" aria-label="Open about me letter" onClick={onOpenAbout}>
-      <svg viewBox="0 0 40 28" aria-hidden="true"><rect x="1" y="1" width="38" height="26" rx="2" fill="#e6524a" stroke="#c43f38" strokeWidth="2"/><path d="m1 2 19 14L39 2" fill="none" stroke="#c43f38" strokeWidth="2"/><circle cx="20" cy="15" r="5" fill="#FAF9F6"/></svg>
+      <svg viewBox="0 0 40 28" aria-hidden="true"><rect x="1" y="1" width="38" height="26" rx="2" fill="#e6524a" stroke="#c43f38" strokeWidth="2"/><path d="m1 2 19 14L39 2" fill="none" stroke="#c43f38" strokeWidth="2"/><circle cx="20" cy="15" r="5" fill="#FAF9F6"/><path transform="translate(16.93 12.28) scale(.0544)" fillRule="evenodd" fill="#dfca94" d="M0 0H93C105 0 113 8 113 20V80C113 92 105 100 93 100H0L13.4 77.6V22.4ZM60.8 2 73.2 23V77L60.8 98 47.6 77V23Z"/></svg>
     </button>
   </>;
 }

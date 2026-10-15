@@ -1,5 +1,6 @@
 import { BoxGeometry, BufferGeometry, Color, ConeGeometry, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, Matrix4 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mulberry32 } from '../../random';
 
 export type V3 = [number, number, number];
 
@@ -120,13 +121,4 @@ export function lancetZ(k: Kit, x: number, y: number, face: number, [w, h]: [num
 export function lancetX(k: Kit, face: number, y: number, z: number, [w, h]: [number, number], color: string) {
   k.box([0.04, h, w], [face, y, z], color);
   k.pyramid([0.04, w * 0.75, w], [face, y + h, z], color);
-}
-
-export function mulberry32(seed: number) {
-  return () => {
-    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }

@@ -1,7 +1,8 @@
 import { ExtrudeGeometry, Path, Shape } from 'three';
 import type { BufferGeometry } from 'three';
 import type { BuildingId } from '../../data/campus';
-import { Kit, corners, lancetX, mulberry32 } from './kit';
+import { mulberry32 } from '../../random';
+import { Kit, corners, lancetX } from './kit';
 import { buildLandmark, buildingIds } from './landmarks';
 import { P, STONE_VARIANTS } from './palette';
 

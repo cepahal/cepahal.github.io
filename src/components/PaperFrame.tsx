@@ -1,18 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { mulberry32 } from '../random';
 
 type Side = 'top' | 'bottom' | 'left' | 'right';
 interface Piece { key: string; side: Side; x: number; y: number; angle: number; z: number; cut: string; shade: number; light: number; fibers: string }
 
-// Seeded PRNG so the pile is identical on every load and between the room and journal frames.
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 const clamp = (min: number, v: number, max: number) => Math.min(max, Math.max(min, v));
 
 // A square with every side torn: points wander a few percent inward along each edge.

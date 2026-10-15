@@ -30,22 +30,29 @@ function measure(): Size {
   return { vw, vh, width, rest, travel: rest + 70 };
 }
 
+// Everything on the shade canvas is soft gradients, so it is drawn at half resolution and stretched by CSS.
+const SHADE_SCALE = 0.5;
+
 /** The darkened room, with a soft cone and pool of light cut out of it. */
 function drawShade(canvas: HTMLCanvasElement, s: Size, pivotY: number) {
-  if (canvas.width !== s.vw || canvas.height !== s.vh) { canvas.width = s.vw; canvas.height = s.vh; }
+  const w = Math.ceil(s.vw * SHADE_SCALE), h = Math.ceil(s.vh * SHADE_SCALE);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const g = canvas.getContext('2d');
   if (!g) return;
-  g.clearRect(0, 0, s.vw, s.vh);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, w, h);
   const focus = lamp.focus;
   canvas.style.visibility = focus > 0.002 ? 'visible' : 'hidden';
   if (focus <= 0.002) return;
+  g.setTransform(SHADE_SCALE, 0, 0, SHADE_SCALE, 0, 0);
 
+  // CSS rotate() turns clockwise, so a positive swing carries the shade (and its beam) to the left.
   const angle = (lamp.swing * Math.PI) / 180, cos = Math.cos(angle), sin = Math.sin(angle);
-  const rim = { x: s.vw / 2 + sin * s.rest, y: pivotY + cos * s.rest }, half = s.width * 0.45;
+  const rim = { x: s.vw / 2 - sin * s.rest, y: pivotY + cos * s.rest }, half = s.width * 0.45;
   const t = lamp.target ?? { x: s.vw / 2, y: s.vh * 0.6, rx: s.vw * 0.36, ry: s.vh * 0.3 };
   // As the lamp rises the light spreads until it covers the whole room, while the darkness fades out.
   const spread = 1 + Math.max(0, 1 - focus) ** 1.5 * 3.5;
-  const pool = { x: t.x + (t.y - pivotY) * Math.tan(angle) * 0.9, y: t.y, rx: t.rx * 1.22 * spread, ry: t.ry * 1.18 * spread };
+  const pool = { x: t.x - (t.y - pivotY) * Math.tan(angle) * 0.9, y: t.y, rx: t.rx * 1.22 * spread, ry: t.ry * 1.18 * spread };
   const cone = (widen: number) => {
     g.beginPath();
     g.moveTo(rim.x - cos * half * widen, rim.y - sin * half * widen);
@@ -146,12 +153,13 @@ export default function HangingLamp({ lit }: { lit: boolean }) {
       lamp.swing += lamp.spin * dt;
       // The light trails the lamp, so after it lifts out of view the beam keeps spreading for a moment.
       lamp.focus += (smooth(clamp(lamp.drop, 0, 1)) - lamp.focus) * (1 - Math.exp(-dt / (lit ? 0.18 : 0.6)));
-      const settled = Math.abs(target - lamp.drop) < 5e-4 && Math.abs(lamp.speed) < 5e-3 && Math.abs(lamp.swing) < 0.05
-        && Math.abs(lamp.spin) < 0.1 && Math.abs(target - lamp.focus) < 2e-3;
+      // Stop as soon as the remaining sway is too small to see, instead of animating a quarter-degree for seconds.
+      const settled = Math.abs(target - lamp.drop) < 5e-4 && Math.abs(lamp.speed) < 5e-3 && Math.abs(lamp.swing) < 0.25
+        && Math.abs(lamp.spin) < 0.8 && Math.abs(target - lamp.focus) < 2e-3;
       if (settled) Object.assign(lamp, { drop: target, speed: 0, swing: 0, spin: 0, focus: target });
       repaint();
-      // The 3D spotlight only needs fresh frames while the motion is visible there.
-      if (settled || Math.abs(target - lamp.focus) > 2e-3 || Math.abs(lamp.swing) > 0.3) notify();
+      // The 3D scene re-renders only while the change is visible there: sways under a degree barely move its light.
+      if (settled || Math.abs(target - lamp.focus) > 2e-3 || Math.abs(lamp.swing) > 1) notify();
       frame = settled ? 0 : requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);

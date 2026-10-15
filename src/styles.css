@@ -309,7 +309,7 @@ button { border: 0; }
   position: absolute; left: 50%; top: 100%; width: 150%; aspect-ratio: 2.2; translate: -50% -22%;
   /* closest-side: fades to nothing inside its own box, so no edge of the glow ever shows. */
   background: radial-gradient(closest-side, rgba(255, 236, 190, 0.9), rgba(255, 208, 135, 0.3) 45%, rgba(255, 200, 120, 0));
-  opacity: var(--glow, 0); mix-blend-mode: screen;
+  opacity: var(--glow, 0);
 }
 .lamp-shade { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
 .room--map .room-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 92vw; margin: 0; }
@@ -416,6 +416,8 @@ button { border: 0; }
 .envelope-front::after { content: ""; position: absolute; inset: 0; background: #fc645c; clip-path: polygon(0 100%,0 92%,50% 37%,100% 92%,100% 100%); }
 .open-mail { position: absolute; inset: auto 0 50px; width: 100%; height: 245px; z-index: 6; background: transparent; }
 .intro.auto-open .open-mail { pointer-events: none; opacity: 0; }
+/* Once open, the invisible envelope button must not sit over the letter's last lines and its buttons. */
+.intro.open .open-mail { pointer-events: none; }
 .seal {
   display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto 15px; border-radius: 49% 45% 48% 43%;
   background: var(--paper); border: 6px solid #e0d9ca; color: var(--coral);
@@ -423,7 +425,9 @@ button { border: 0; }
 }
 .mail-caption { position: absolute; bottom: -45px; left: 0; right: 0; text-align: center; font-family: "Courier New", Courier, monospace; font-weight: bold; font-size: 1.1rem; color: #6a5e4d; text-transform: lowercase; }
 .letter {
-  position: absolute; bottom: 70px; left: 5%; width: 90%; height: 230px; z-index: 2; padding: 20px 26px;
+  /* The bottom ~80px of the open letter is tucked inside the envelope, so the padding lets the last lines and
+     buttons scroll fully clear of it. */
+  position: absolute; bottom: 70px; left: 5%; width: 90%; height: 230px; z-index: 2; padding: 20px 26px 104px;
   background: var(--paper); box-shadow: 0 10px 2px -2px rgba(98, 78, 51, 0.25); opacity: 0; overflow-y: auto; scrollbar-width: none;
   transform: translateY(15px); transition: transform .85s cubic-bezier(.2,.8,.2,1) .28s, height .85s .28s, opacity .2s .25s;
 }
@@ -439,8 +443,14 @@ button { border: 0; }
 .letter-links { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0 14px; font-size: .8rem; font-weight: bold; }
 .paper-button { padding: 11px 19px; background: var(--yellow); box-shadow: 0 5px 0 #cfbc7f; transform: rotate(-1deg); font-weight: bold; }
 .paper-button:hover { transform: rotate(1deg) translateY(-3px); box-shadow: 0 8px 0 #cfbc7f; }
+.linkedin-button { display: inline-block; margin-left: 10px; background: #0a66c2; color: #fff; text-decoration: none; box-shadow: 0 5px 0 #084a8c; }
+.linkedin-button:hover { box-shadow: 0 8px 0 #084a8c; }
 .letter-footnote { color: var(--muted); font-size: .68rem !important; margin: 10px 0 0 !important; }
-.skip-intro { position: fixed; bottom: 42px; left: 50%; transform: translateX(-50%); background: transparent; font-size: .78rem; font-weight: bold; text-decoration: underline; text-underline-offset: 5px; }
+/* Padded to a full thumb-sized target, lifted clear of the iOS home bar where taps open Safari's toolbar instead. */
+.skip-intro {
+  position: fixed; bottom: calc(29px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); min-height: 44px; padding: 12px 20px;
+  background: transparent; font-size: .78rem; font-weight: bold; text-decoration: underline; text-underline-offset: 5px; white-space: nowrap;
+}
 
 /* -------------------------------------------------------
    SCENE TRANSITION
@@ -473,15 +483,20 @@ button { border: 0; }
   background: radial-gradient(ellipse at 65% 5%, #76705a33, transparent 60%), radial-gradient(#ffefcb09 2px, transparent 3px), #292c29;
   background-size: auto, 30px 30px, auto;
 }
-.project-scene .paper-frame { z-index: 2; }
-.project-scene .journal { z-index: 1; }
+/* The site's one paper frame lifts above the notes' scroller (z 30) but stays under their nav and close button. */
+body.journal-open .paper-frame { z-index: 35; }
+/* Torn paper cards (ProjectJournal generates each card's --tear-* outlines): white fibres under a torn face. */
+.paper-tear { position: relative; isolation: isolate; }
+.paper-tear::before, .paper-tear::after { content: ""; position: absolute; pointer-events: none; }
+.paper-tear::before { inset: -4px; z-index: -2; clip-path: var(--tear-fibers); background: linear-gradient(115deg, #ffffff, #f0ebe1); }
+.paper-tear::after { inset: 0; z-index: -1; clip-path: var(--tear-face); background: var(--paper); }
 .close-project {
   position: fixed; z-index: 45; top: 58px; right: 55px; width: 46px; height: 46px;
   background: transparent; box-shadow: none; color: var(--paper); font-size: 2.7rem; rotate: 5deg; text-shadow: 0 4px 1px rgba(0,0,0,0.4);
 }
 .close-project:hover { rotate: -6deg; transform: scale(1.1); }
 .journal { width: min(850px, 100%); margin: 0 auto; position: relative; background: transparent; color: var(--paper); }
-.journal .hero-cover { margin: 0 0 27px; padding: 12px; background: var(--paper); box-shadow: 0 14px 2px -2px rgba(0,0,0,0.25); rotate: -.5deg; }
+.journal .hero-cover { margin: 0 0 27px; padding: 12px; box-shadow: 0 14px 2px -2px rgba(0,0,0,0.25); rotate: -.5deg; }
 .journal .hero-cover img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .journal figcaption { text-align: center; color: #716859; font-size: .72rem; margin-top: 12px; }
 .journal .project-heading { padding: 0 4px 22px; }
@@ -492,7 +507,7 @@ button { border: 0; }
 .tags span { color: var(--ink); background: #eee6d5; padding: 6px 10px; font-size: .73rem; rotate: -1deg; box-shadow: 0 3px 0 rgba(0,0,0,0.15); }
 .journal .content-sheet {
   position: relative; margin: 35px 0; padding: clamp(25px, 4vw, 48px);
-  color: var(--ink); background: var(--paper); box-shadow: 0 14px 2px -2px rgba(0,0,0,0.25); border-radius: 2px 5px 3px 2px; scroll-margin-top: 90px;
+  color: var(--ink); box-shadow: 0 14px 2px -2px rgba(0,0,0,0.25); scroll-margin-top: 90px;
 }
 .journal .content-sheet:nth-of-type(even) { rotate: -.3deg; }
 .journal h2 { font-size: 1.5rem; letter-spacing: -.045em; margin-top: 0; }
@@ -508,6 +523,14 @@ button { border: 0; }
 .topic-track { position: absolute; top: 20px; bottom: 20px; left: 18px; width: 4px; background: #fefbea30; pointer-events: none; }
 .topic-fill { width: 100%; height: 100%; background: var(--yellow); transform: scaleY(0); transform-origin: top; will-change: transform; }
 .journal-spacer { pointer-events: none; }
+/* Paper vine wrapping the progress bar (PaperVine): same box as .topic-track, revealed down to --grow. */
+.vine { position: absolute; top: 20px; left: 0; width: 40px; height: calc(100% - 40px); overflow: visible; pointer-events: none; }
+.vine--stem { clip-path: inset(-4px -20px calc((1 - var(--grow, 0)) * 100%) -20px); }
+.vine--leaves { filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.35)); }
+.vine-leaf {
+  transform-box: fill-box; transform-origin: 0% 50%;
+  transform: scale(clamp(0, (var(--grow, 0) - var(--at)) * 22, 1)); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+}
 .topic-list li { position: relative; z-index: 1; }
 .topic-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0; text-align: left; background: transparent; color: #d6d1c3; font-size: .8rem; font-weight: bold; }
 .topic-dot-wrap { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; }
@@ -518,14 +541,14 @@ button { border: 0; }
 .topic-progress { margin-top: 25px; font-size: .7rem; color: #c9c2b1; font-weight: bold; }
 
 .cursor {
-  position: fixed; top: 0; left: 0; width: 27px; height: 27px; border: 3px solid #bd5149; background: #ffee8c28; border-radius: 50%; pointer-events: none; z-index: 1000; transform: translate(-50%, -50%); box-shadow: 0 0 0 3px #ffffff60; transition: width .13s, height .13s, background .13s;
+  position: fixed; top: 0; left: 0; width: 27px; height: 27px; border: 3px solid #bd5149; background: #ffee8c28; border-radius: 50%; pointer-events: none; z-index: 1000; transform: translate(-50%, -50%); will-change: transform; box-shadow: 0 0 0 3px #ffffff60; transition: width .13s, height .13s, background .13s;
 }
 .cursor::after { content: ""; position: absolute; width: 6px; height: 6px; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: #bd5149; }
 .cursor.hover { width: 39px; height: 39px; background: #ffee8c50; }
 .cursor.down { width: 20px; height: 20px; }
 /* A faint comet tail of shrinking dots that lag behind the ring. */
 .cursor-trail {
-  position: fixed; top: 0; left: 0; z-index: 999; pointer-events: none; border-radius: 50%; transform: translate(-50%, -50%);
+  position: fixed; top: 0; left: 0; z-index: 999; pointer-events: none; border-radius: 50%; transform: translate(-50%, -50%); will-change: transform;
   width: calc(10px - var(--i) * 1.4px); height: calc(10px - var(--i) * 1.4px);
   background: #bd5149; opacity: calc(0.22 - var(--i) * 0.04);
 }
@@ -550,7 +573,8 @@ button { border: 0; }
   .project-scene { padding: 68px 34px 56px; }
   .journal .hero-cover { padding: 7px; } .journal .content-sheet { padding: 22px 20px; } .journal h1 { font-size: 2rem; }
   .intro { --lm: clamp(48px, 8vh, 96px); --lh: clamp(340px, calc(var(--vh) - 320px), 460px); }
-  .letter { padding: 18px 20px; }
+  .letter { padding: 18px 20px 100px; }
+  .skip-intro { bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
   .letter h1 { font-size: 1.5rem; line-height: 1.15; margin: 6px 0 12px; }
   .letter p { font-size: .85rem; }
   .letter .eyebrow { font-size: .58rem; letter-spacing: .12em; }
@@ -594,6 +618,8 @@ button { border: 0; }
   .seal .glyph-icon { display: block; width: .8em; height: .8em; stroke-width: 1.3; }
   /* Rings from programmatic focus, and hover states that stick after a tap. */
   .open-mail:focus-visible, .letter:focus-visible, .project-scene:focus-visible { outline: none; }
+  /* Upright cards rasterise faster while flicking through the notes. */
+  .journal .content-sheet:nth-of-type(even), .journal .hero-cover { rotate: none; }
   .project-card:hover:not(:focus-visible) { transform: rotate(var(--tilt)); box-shadow: var(--shadow); }
   .mail-dock:hover { transform: none; }
   .view-toggle:hover { transform: none; box-shadow: inset 0 0 0 2px #e6dcc6, 0 4px 0 rgba(100, 80, 55, 0.22); }

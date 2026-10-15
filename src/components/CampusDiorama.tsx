@@ -190,7 +190,10 @@ function Landmark({ id, geometry, spot, active, intro, reduced, tier, handlers }
     const lift = active ? 0.14 : 0;
     group.position.y = damp(group.position.y, lift, dt, reduced);
     material.emissiveIntensity = damp(material.emissiveIntensity, active ? 0.18 : 0, dt, reduced);
-    if ((intro.current !== null && grow < 1) || group.position.y !== lift) state.invalidate();
+    if ((intro.current !== null && grow < 1) || group.position.y !== lift) {
+      state.invalidate();
+      state.gl.shadowMap.needsUpdate = true; // this building's shadow is moving
+    }
   });
 
   return <group position={[site.at[0], 0, site.at[1]]} rotation-y={site.rot}>
@@ -272,9 +275,10 @@ function Lights({ tier }: { tier: Tier }) {
     if (sun.current) sun.current.intensity = 1.9 - 0.75 * f;
     const light = spot.current;
     if (!light) return;
-    // Toward the camera and across the screen, measured from above the block.
+    // Toward the camera and across the screen, measured from above the block. A positive swing turns the lamp
+    // clockwise on screen, carrying the light to the left (−screen-right), same as the 2D beam.
     const azimuth = Math.atan2(camera.position.x, camera.position.z), sa = Math.sin(azimuth), ca = Math.cos(azimuth);
-    const lean = Math.sin(swing) * 4, reach = Math.tan(swing) * 14;
+    const lean = -Math.sin(swing) * 4, reach = -Math.tan(swing) * 14;
     light.position.set(sa * 4 + ca * lean, 16, ca * 4 - sa * lean);
     light.target.position.set(ca * reach, 0, -sa * reach);
     light.target.updateMatrixWorld();
@@ -287,9 +291,9 @@ function Lights({ tier }: { tier: Tier }) {
       shadow-bias={-0.0004} shadow-normalBias={0.035} shadow-radius={3}>
       <orthographicCamera attach="shadow-camera" args={[-11, 11, 11, -11, 1, 40]} />
     </directionalLight>
-    {/* Stays in the scene at zero intensity when the lamp is up, so switching never recompiles shaders. */}
-    <spotLight ref={spot} color="#FFC983" intensity={0} angle={1.1} penumbra={0.65} decay={0} castShadow={tier === 'high'}
-      shadow-mapSize={[512, 512]} shadow-bias={-0.0006} shadow-normalBias={0.04} shadow-radius={4} shadow-camera-near={2} shadow-camera-far={40} />
+    {/* Stays in the scene at zero intensity when the lamp is up, so switching never recompiles shaders. It casts no
+        shadows of its own: the sun's shadow map stays static while the lamp sways, so a sway costs one plain render. */}
+    <spotLight ref={spot} color="#FFC983" intensity={0} angle={1.1} penumbra={0.65} decay={0} />
   </>;
 }
 
@@ -328,10 +332,16 @@ function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, h
     invalidate();
   }, [introOn, reduced, invalidate]);
   useEffect(() => { invalidate(); }, [activeId, invalidate]);
+  // Shadow maps are only rendered on request (see onCreated), so a freshly mounted scene asks for one.
+  const gl = useThree(state => state.gl);
+  useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); }, [gl, invalidate]);
   useFrame(state => {
     const grow = progress(intro.current, 200, 750);
     trees.current?.scale.set(1, Math.max(0.001, easeOutBack(grow)), 1);
-    if (intro.current !== null && grow < 1) state.invalidate();
+    if (intro.current !== null && grow < 1) {
+      state.invalidate();
+      state.gl.shadowMap.needsUpdate = true;
+    }
   });
 
   return <>
@@ -452,9 +462,13 @@ export default function CampusDiorama({ active, onOpenProject }: CampusDioramaPr
       e.stopPropagation();
       open(activeSpot.id, null);
     }}>
-    <Canvas orthographic frameloop="demand" shadows="percentage" flat dpr={tier === 'high' ? [1, 2] : [1, 1.5]} camera={{ position: START, zoom: 20, near: 0.1, far: 100 }}
+    <Canvas orthographic frameloop="demand" shadows="percentage" flat dpr={tier === 'high' ? [1, 1.5] : [1, 1.25]} camera={{ position: START, zoom: 20, near: 0.1, far: 100 }}
       onPointerMissed={() => setSelected(null)}
       onCreated={({ gl }) => {
+        // The sun is fixed in the world, so orbiting the camera never changes its shadow map; it is re-rendered
+        // only on frames where something casting a shadow moves (the intro, a building lifting on hover).
+        gl.shadowMap.autoUpdate = false;
+        gl.shadowMap.needsUpdate = true;
         const context = gl.getContext(), info = context.getExtension('WEBGL_debug_renderer_info');
         if (info && SOFTWARE_GPU.test(String(context.getParameter(info.UNMASKED_RENDERER_WEBGL)))) setTier('low');
       }}>
