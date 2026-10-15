@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { Project } from '../data/projects';
 import { projectIllustration } from '../data/projects';
 import { mulberry32, seedFrom } from '../random';
 import Glyph from './Glyph';
-import PaperVine from './PaperVine';
+import PaperVine, { growVineTo } from './PaperVine';
 
 interface ProjectJournalProps { project: Project; onClose: () => void }
 
@@ -29,8 +29,7 @@ function tornEdge(rand: () => number, min: number, max: number) {
 
 export default function ProjectJournal({ project, onClose }: ProjectJournalProps) {
   const sceneRef = useRef<HTMLDivElement>(null), fillRef = useRef<HTMLDivElement>(null), railRef = useRef<HTMLDivElement>(null);
-  const anchors = useRef<number[]>([]), frame = useRef(0), shown = useRef(-1);
-  const [current, setCurrent] = useState(0);
+  const anchors = useRef<number[]>([]), frame = useRef(0), shown = useRef(-1), grow = useRef(0), current = useRef(0);
   const seed = seedFrom(project.id);
 
   // Every paper card gets its own tear: white fibres reaching a little past the box (their layer is 4px larger
@@ -68,18 +67,26 @@ export default function ProjectJournal({ project, onClose }: ProjectJournalProps
       const span = a[i + 1] - a[i]; progress = (i + (span > 0 ? (y - a[i]) / span : 0)) / (n - 1); break;
     }
     if (Math.abs(progress - shown.current) > 0.0005) {
-      shown.current = progress;
+      shown.current = grow.current = progress;
       fill.style.transform = `scaleY(${progress})`;
-      rail.style.setProperty('--grow', progress.toFixed(4));
+      growVineTo(rail, progress);
     }
-    setCurrent(active);
+    // The contents marks are updated in place too: re-rendering the whole journal on every section change was
+    // the most expensive part of scrolling.
+    if (active !== current.current) {
+      current.current = active;
+      rail.querySelectorAll('.topic-button').forEach((button, i) => {
+        button.classList.toggle('visited', i <= active);
+        if (i === active) button.setAttribute('aria-current', 'location'); else button.removeAttribute('aria-current');
+      });
+    }
   }, []);
 
   useEffect(() => {
     const scene = sceneRef.current, article = scene?.firstElementChild;
     if (!scene || !article) return;
     const onScroll = () => { if (!frame.current) frame.current = requestAnimationFrame(update); };
-    const relayout = () => { measure(); update(); };
+    const relayout = () => { measure(); shown.current = -1; update(); };
     const observer = new ResizeObserver(relayout);
     observer.observe(article);
     relayout();
@@ -114,9 +121,9 @@ export default function ProjectJournal({ project, onClose }: ProjectJournalProps
     </div>
     <nav className="topic-nav" aria-label="Project contents">
       <h2 className="topic-heading">Contents</h2>
-      <div className="topic-rail" ref={railRef}><PaperVine layer="back" seed={seed} /><div className="topic-track"><div className="topic-fill" ref={fillRef} /></div><PaperVine layer="front" seed={seed} />
+      <div className="topic-rail" ref={railRef}><PaperVine layer="back" seed={seed} grow={grow} /><div className="topic-track"><div className="topic-fill" ref={fillRef} /></div><PaperVine layer="front" seed={seed} grow={grow} />
         <ul className="topic-list">{project.sections.map((section, i) => <li key={`${section.title}-${i}`}>
-          <button className={`topic-button${i <= current ? ' visited' : ''}`} data-target={`section-${i}`} aria-current={current === i ? 'location' : undefined} onClick={() => jump(i)}>
+          <button className={`topic-button${i === 0 ? ' visited' : ''}`} data-target={`section-${i}`} aria-current={i === 0 ? 'location' : undefined} onClick={() => jump(i)}>
             <span className="topic-dot-wrap" aria-hidden="true"><span className="topic-dot" /></span><span className="topic-label">{section.title}</span>
           </button>
         </li>)}</ul>

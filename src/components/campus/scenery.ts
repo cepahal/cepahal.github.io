@@ -3,7 +3,7 @@ import type { BufferGeometry } from 'three';
 import type { BuildingId } from '../../data/campus';
 import { mulberry32 } from '../../random';
 import { Kit, corners, lancetX } from './kit';
-import { buildLandmark, buildingIds } from './landmarks';
+import { buildLandmark, buildingIds, dormWing } from './landmarks';
 import { P, STONE_VARIANTS } from './palette';
 
 /** The block is 2 × HALF world units square; north is −z. */
@@ -15,36 +15,45 @@ export const DEPTH = STRATA.reduce((sum, [h]) => sum + h, 0);
 type Rect = [number, number, number, number]; // x0, z0, x1, z1
 type Spot = [number, number];
 
-const LOOP: Spot = [0, 5]; // the bus loop at the south end of Abele Quad
-const POND: Spot = [6.4, -5.8];
-const GAZEBO: Spot = [5.85, -4.1];
-const BEDS: Spot[] = [[6.95, -4.15], [5.45, -6.85]];
-const BLOSSOMS: Spot[] = [[5.3, -5.2], [7.2, -4.95], [7.15, -6.9], [5.85, -7.1], [7.2, -3.85]];
-const TENTS: Spot[] = [[5.75, -0.35], [6.35, -0.25], [6.95, -0.4], [5.8, 0.55], [6.45, 0.65], [7, 1.35], [6.1, 1.6]];
+// The quad runs north–south down the middle, between a west hall (x ≈ −2.2) and an east hall (x ≈ 2.95).
+const QX = 0.375; // its centre line, where the chapel tower and the loop sit
+const LOOP: Spot = [QX, 5.75]; // the bus loop at the south end, between Few Quad and Allen
+const POND: Spot = [5.7, -5.6];
+const GAZEBO: Spot = [5.0, -3.35];
+const BEDS: Spot[] = [[6.7, -3.2], [4.5, -6.7]];
+const BLOSSOMS: Spot[] = [[4.3, -4.8], [6.95, -4.6], [7.0, -6.8], [5.5, -7.05], [6.9, -2.3], [4.2, -2.4]];
+const TENTS: Spot[] = [[-6.9, -2.3], [-6.3, -2.2], [-5.7, -2.35], [-6.85, -1.5], [-6.2, -1.4], [-5.6, -1.55], [-6.6, -0.65], [-5.9, -0.6]];
+// A second dorm quad sharing Few Quad's west wing (Few's gate arch leads between their courtyards).
+const DORM: Rect = [-6.55, 4.675, -3.93, 7.325];
 
 const PLAZAS: Rect[] = [
-  [-1.7, -2.4, 1.7, -0.6], // chapel quad
-  [-2, -0.3, -1.5, 1.95], // Brodhead terrace
-  [5.15, -3.3, 5.4, -1.1], // Gross Hall forecourt
+  [-1.7, -1.75, 2.45, -0.45], // chapel quad, in front of the tower
+  [-5.3, -5.35, -3.5, -5.05], // Gross Hall forecourt
+  [-4.95, -1.65, -4.55, 0.15], // Brodhead's terrace side, facing west
 ];
 const PATHS: Rect[] = [
-  [-4.3, -0.6, 4.3, -0.3], // cross walk between the chapel quad and Abele Quad
-  [-1.5, -0.3, -1.2, 3.55], [1.2, -0.3, 1.5, 3.55], [-1.5, 3.4, 1.5, 3.55], // walks around Abele Quad
-  [-0.18, -0.3, 0.18, 1.7], // spine through the trees
-  [-2.35, 4.95, -1.1, 5.25], [1.1, 4.95, 1.5, 5.25], // Few Quad and Allen to the loop
-  [2.83, 4.95, 4.3, 5.25], // Allen over to the stadium
-  [4.9, -4.4, 5.15, 2.8], // sidewalk past Gross Hall and K-ville
-  [5.15, -4.25, 5.5, -3.95], [5.75, -5.15, 6.05, -4.42], // garden walks
+  [QX - 0.175, -1.6, QX + 0.175, -0.45], // tower steps to the cross walk
+  [-1.725, -0.45, 2.475, -0.15], // cross walk between the chapel quad and Abele Quad
+  [-1.725, -0.15, -1.45, 4.55], [2.2, -0.15, 2.475, 4.55], [-1.725, 4.3, 2.475, 4.55], // walks around Abele Quad
+  [QX - 0.175, -0.15, QX + 0.175, 2.0], // spine through the trees
+  [2.75, 4.55, 2.95, 5.45], // down to Allen's door
+  [-5.6, 5.88, -0.475, 6.12], // the dorm quad, through Few's archway and courtyard, to the loop
+  [2.475, 2.4, 6.3, 2.65], // over to Perkins, past the L
+  [-4.85, -3.1, -1.0, -2.85], [-1.3, -2.85, -1.0, -1.75], [-4.85, -2.85, -4.6, -1.65], // Brodhead round to the chapel
+  [-4.55, -5.05, -4.25, -3.1], // Gross Hall down to that walk
+  [3.5, -3.5, 4.65, -3.2], // into Duke Gardens
 ];
 // Where the tree scatter must not grow: buildings, paths, lawns and roads (with a little margin).
 const CLEAR: Rect[] = [
-  [-1.6, -7.3, 1.6, -2.1], [-1.9, -2.5, 1.9, -0.2], [-4.4, -0.7, 4.4, -0.2], [-1.6, -0.3, 1.6, 3.6],
-  [-3.7, -3.55, -1.6, -1.05], [-5.25, -3.55, -3.3, -2.2], [-6.6, -5.8, -4.2, -3.4], [-3.7, -0.4, -1.45, 2.1],
-  [-6.6, -0.5, -4, 2.2], [-5.1, 3.6, -2.1, 6.6], [-2.45, 4.8, -1, 5.4], [-1.35, 3.35, 1.35, 6.65],
-  [-0.45, 6.3, 0.45, 7.6], [1.3, 3.35, 3, 6.85], [2.8, 4.8, 4.4, 5.4], [1.45, -0.35, 2.75, 3.15],
-  [1.65, -4.6, 2.95, -0.75], [4.1, -7.6, 5.3, 7.6], [4.95, 2.7, 7.45, 6.65], [5.1, -3.5, 7.15, -0.9],
-  [5.3, -0.85, 7.4, 2.6], [5.35, -6.6, 7.4, -5], [5.35, -4.6, 6.35, -3.6], [5.5, -5.2, 6.15, -4.3],
-  [6.6, -4.4, 7.3, -3.9], [5.1, -7.1, 5.8, -6.6],
+  [-1.1, -6.75, 1.85, -1.45], [-1.85, -1.9, 2.6, HALF], // chapel; the quads, walks, loop and drive
+  [-2.8, -2.85, -1.6, 1.95], [2.35, -2.85, 3.55, 1.95], [2.9, 0.6, 4.85, 1.85], [4.4, 5.65, HALF, 7.0], // the halls
+  [-5.05, -2.0, -2.6, 0.5], [-5.0, -3.25, -0.9, -2.7], [-4.7, -5.1, -4.1, -3.0], [-5.65, -7.2, -3.15, -4.95], // Brodhead, Gross
+  [-7.6, 0.2, -5.0, 4.15], [-7.4, -2.65, -5.15, -0.3], // Wallace Wade, K-ville
+  [-6.7, 4.5, -1.2, 7.45], [-1.6, 5.75, -0.4, 6.25], [1.15, 5.3, 4.6, 6.9], [2.6, 4.4, 3.1, 5.5], // the dorm quads, Allen
+  [4.95, -1.05, 7.35, 2.55], [2.3, 2.25, 6.45, 2.8], // Perkins and its walk
+  [4.75, -6.45, 6.65, -4.75], [4.5, -3.9, 5.5, -2.85], [4.9, -5.0, 5.8, -3.7], [3.4, -3.65, 4.75, -3.05], // the gardens
+  [6.35, -3.45, 7.05, -2.95], [4.15, -6.95, 4.85, -6.45],
+  ...BLOSSOMS.map(([x, z]): Rect => [x - 0.3, z - 0.3, x + 0.3, z + 0.3]),
 ];
 
 const flat = (k: Kit, [x0, z0, x1, z1]: Rect, h: number, color: string) => k.box([x1 - x0, h, z1 - z0], [(x0 + x1) / 2, 0, (z0 + z1) / 2], color);
@@ -81,21 +90,17 @@ function ground() {
 function decals() {
   const k = new Kit();
   for (const plaza of PLAZAS) flat(k, plaza, 0.02, P.plaza);
-  for (const lawn of [[-1.35, -1.95, -0.3, -0.85], [0.3, -1.95, 1.35, -0.85]] as Rect[]) flat(k, lawn, 0.026, P.lawn);
-  flat(k, [-1.2, -0.3, 1.2, 3.4], 0.014, P.lawn);
+  for (const lawn of [[-1.35, -1.45, -0.05, -0.75], [0.8, -1.45, 2.1, -0.75]] as Rect[]) flat(k, lawn, 0.026, P.lawn);
+  flat(k, [-1.45, -0.15, 2.2, 4.3], 0.014, P.lawn); // Abele Quad: trees in the north half, crossing paths in the south
+  flat(k, [DORM[0] + 0.65, DORM[1] + 0.65, DORM[2], DORM[3] - 0.65], 0.016, P.lawn); // the dorm quad's courtyard
   for (const path of PATHS) flat(k, path, 0.024, P.path);
-  strip(k, [-1.2, 1.7], [1.2, 3.4], 0.28, 0.024, P.path);
-  strip(k, [1.2, 1.7], [-1.2, 3.4], 0.28, 0.024, P.path);
-  // The loop at the south end, its lawn, and Chapel Drive running off the block.
-  k.add(oval(1.15, 1.5, 0.012, [0.73, 1.08]), P.road, [LOOP[0], 0, LOOP[1]]);
-  k.add(oval(0.73, 1.08, 0.014), P.lawn, [LOOP[0], 0, LOOP[1]]);
-  flat(k, [-0.12, 4.05, 0.12, 5.95], 0.02, P.path);
-  flat(k, [-0.25, 6.45, 0.25, HALF], 0.012, P.road);
-  // Science Drive along the east edge, with its markings and two zebra crossings.
-  flat(k, [4.3, -HALF, 4.9, HALF], 0.012, P.road);
-  const crossings = [-0.6, 4.95];
-  for (let z = -7.2; z < 7.2; z += 0.55) if (crossings.every(c => z + 0.25 < c || z > c + 0.35)) flat(k, [4.58, z, 4.62, z + 0.25], 0.022, P.line);
-  for (const c of crossings) for (let i = 0; i < 5; i++) flat(k, [4.34 + i * 0.115, c, 4.4 + i * 0.115, c + 0.3], 0.022, P.line);
+  strip(k, [-1.45, 2.0], [2.2, 4.3], 0.28, 0.024, P.path);
+  strip(k, [2.2, 2.0], [-1.45, 4.3], 0.28, 0.024, P.path);
+  strip(k, [5.1, -3.75], [5.6, -4.95], 0.26, 0.024, P.path); // gazebo to the pond
+  // The loop between Few Quad and Allen, its lawn, and Chapel Drive running off the south edge.
+  k.add(oval(0.85, 1.15, 0.012, [0.48, 0.78]), P.road, [LOOP[0], 0, LOOP[1]]);
+  k.add(oval(0.48, 0.78, 0.014), P.lawn, [LOOP[0], 0, LOOP[1]]);
+  flat(k, [QX - 0.25, LOOP[1] + 1.1, QX + 0.25, HALF], 0.012, P.road);
   k.slab(0.9, 0.7, 0.02, 9, [POND[0], 0, POND[1]], P.plaza);
   k.slab(0.8, 0.6, 0.03, 9, [POND[0], 0, POND[1]], P.water);
   return k.merge();
@@ -115,14 +120,11 @@ function hall(k: Kit, x: number, z0: number, z1: number, facing: 1 | -1) {
   k.box([0.12, 0.36, 0.12], [x - facing * 0.2, 1.2, z0 + length * 0.3], P.stoneDark);
 }
 
-/** Flat-roofed stone block with ribbon windows (the Bryan Center, Bostock Library). */
-function block(k: Kit, [x0, z0, x1, z1]: Rect, h: number) {
-  const x = (x0 + x1) / 2, z = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
-  k.box([w, h, d], [x, 0, z], P.stone2);
-  for (const y of [0.3, 0.75].filter(y => y + 0.2 < h)) k.box([w + 0.02, 0.18, d + 0.02], [x, y, z], P.glassDark);
-  k.box([w + 0.06, 0.06, d + 0.06], [x, h, z], P.trim);
-  k.box([w * 0.55, 0.4, d * 0.55], [x, h, z], P.stone);
-  k.box([w * 0.55 + 0.02, 0.16, d * 0.55 + 0.02], [x, h + 0.13, z], P.glassDark);
+/** The same hall running east–west, centred on (x, z); `facing` +1 puts the arcade on the north side, −1 the south. */
+function hallAcross(k: Kit, x: number, z: number, length: number, facing: 1 | -1) {
+  k.push([x, 0, z], Math.PI / 2);
+  hall(k, 0, -length / 2, length / 2, facing);
+  k.pop();
 }
 
 function bus(k: Kit, x: number, z: number, rot: number) {
@@ -145,19 +147,25 @@ function car(k: Kit, x: number, z: number, rot: number, paint: string) {
 
 function props() {
   const k = new Kit(STONE_VARIANTS, 7);
-  hall(k, 2.075, -0.2, 3, -1); // Old Chemistry, east of Abele Quad
-  hall(k, 2.3, -4.4, -0.95, -1); // Divinity School, east of the chapel quad
-  block(k, [-6.4, -0.3, -4.2, 2], 1.0); // Bryan Center, behind Brodhead
-  block(k, [-6.4, -5.6, -4.4, -3.6], 1.2); // Bostock Library, behind Perkins
-  for (const z of [-0.1, 1.2, 2.5]) for (const x of [-1.35, 1.35]) {
+  // The halls lining the quad (the east one turns into an L at its south end), and one beside Allen.
+  hall(k, -2.2, -2.7, 1.8, 1);
+  hall(k, 2.95, -2.7, 1.8, -1);
+  hallAcross(k, 3.85, 1.23, 1.7, -1);
+  hallAcross(k, 5.95, 6.325, 2.8, 1);
+  // The dorm quad west of Few: north and south ranges running on from Few's, closed by a west wing.
+  const [dx0, dz0, dx1, dz1] = DORM, dormX = (dx0 + dx1) / 2;
+  dormWing(k, dormX, dz0 + 0.325, dx1 - dx0, 2);
+  dormWing(k, dormX, dz1 - 0.325, dx1 - dx0, 0);
+  k.box([0.65, 1.1, dz1 - dz0 - 1.3], [dx0 + 0.325, 0, (dz0 + dz1) / 2], P.stone2);
+  k.gable([0.77, 0.48, dz1 - dz0 - 1.26], [dx0 + 0.325, 1.1, (dz0 + dz1) / 2], P.roofDark);
+  for (const z of [5.7, 6.3]) lancetX(k, dx0 + 0.66, 0.3, z, [0.14, 0.32], P.window);
+  for (const z of [0.3, 1.5, 2.7, 3.9]) for (const x of [-1.3, 2.05]) {
     k.cylinder(0.012, 0.016, 0.42, 5, [x, 0, z], P.trim);
     k.blob(0.05, [x, 0.45, z], P.lit);
   }
-  // C1 bus on the loop and traffic on Science Drive, keeping right.
-  bus(k, -0.94, LOOP[1], -Math.PI / 2);
-  car(k, 4.75, -1.6, Math.PI / 2, P.pink);
-  car(k, 4.45, 2.1, -Math.PI / 2, P.butter);
-  car(k, 4.45, 6.4, -Math.PI / 2, P.mint);
+  // C1 bus on the loop, and a car heading out down Chapel Drive.
+  bus(k, LOOP[0] - 0.665, LOOP[1], -Math.PI / 2);
+  car(k, QX, 7.2, Math.PI / 2, P.pink);
   // Duke Gardens: gazebo, lily pads and flower beds.
   const [gx, gz] = GAZEBO;
   k.slab(0.36, 0.36, 0.05, 6, [gx, 0, gz], P.trim);
@@ -195,8 +203,8 @@ function tree(k: Kit, x: number, z: number, kind: TreeKind, s: number, rand: () 
 
 function trees() {
   const k = new Kit(), rand = mulberry32(2024);
-  for (const x of [-0.65, 0.65]) for (const z of [0.05, 0.55, 1.05, 1.5]) tree(k, x, z, 'round', 0.8, rand); // north half of Abele Quad
-  for (const x of [-0.62, 0.62]) for (const z of [6.75, 7.25]) tree(k, x, z, 'round', 0.7, rand); // Chapel Drive
+  for (const x of [QX - 1.2, QX + 1.2]) for (const z of [0.15, 0.65, 1.15, 1.6]) tree(k, x, z, 'round', 0.8, rand); // north half of Abele Quad
+  for (const [x, z] of [[-5.3, 5.55], [-4.55, 6.45]]) tree(k, x, z, 'round', 0.75, rand); // the dorm quad's courtyard
   for (const [x, z] of BLOSSOMS) tree(k, x, z, 'blossom', 0.85, rand);
   // Duke Forest everywhere else.
   for (let gx = -7.2; gx <= 7.2; gx += 0.46) {

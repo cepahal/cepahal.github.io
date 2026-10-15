@@ -82,39 +82,19 @@ button { border: 0; }
 /* -------------------------------------------------------
    HIGHEST SCENIC LAYER: CONSTRUCTION PAPER PROSCENIUM
 ------------------------------------------------------- */
+/* The torn-sheet pile is painted onto this one canvas by PaperFrame.tsx. */
 .paper-frame {
   position: fixed;
-  inset: 0;
+  top: -16px;
+  left: -16px;
   z-index: 10;
+  width: calc(100% + 32px);
+  height: calc(100% + 32px);
   pointer-events: none;
   /* One crumple pass over the whole pile instead of one SVG filter per sheet. */
   filter: url(#paper-crumple);
 }
 .paper-filter-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
-
-/* Every sheet is the same torn square (size, position, tilt, shade and outline are
-   generated in PaperFrame.tsx). The pile is drawn twice: white sheets in the fibres
-   layer, then red faces inset by per-sheet --fibers widths in the sheets layer. */
-.paper-layer { position: absolute; inset: 0; }
-.paper-layer--fibers { z-index: 0; filter: drop-shadow(0 4px 3px #6946384d); }
-.paper-layer--sheets { z-index: 1; }
-.paper-piece { position: absolute; display: block; }
-.paper-layer--fibers .paper-piece { clip-path: var(--paper-cut); background: linear-gradient(var(--light, 110deg), #fffdf6, #eee8dc); }
-.paper-layer--sheets .paper-piece { filter: brightness(var(--shade, 1)) drop-shadow(0 3px 2px #6946385c) drop-shadow(0 8px 5px #6c514226); }
-.paper-layer--sheets .paper-piece::after {
-  content: "";
-  position: absolute;
-  inset: var(--fibers, 2px);
-  clip-path: var(--paper-cut);
-  background-color: #ef554c;
-  background-image:
-    repeating-linear-gradient(23deg, transparent 0 4px, #ffffff0c 4px 5px),
-    repeating-linear-gradient(103deg, transparent 0 18px, #ffffff14 19px, #76271c1a 21px, transparent 27px),
-    radial-gradient(ellipse at 16% 28%, #ffffff25, transparent 34%),
-    radial-gradient(ellipse at 78% 72%, #6c211620, transparent 38%),
-    linear-gradient(var(--light, 110deg), #ff766a, #c63b35 92%);
-  box-shadow: inset 0 1px 0 #fff4, inset 0 -3px 5px #8d282322;
-}
 
 /* -------------------------------------------------------
    SCENE 3: THE PROJECT ROOM & 3D DIORAMA BOX
@@ -318,8 +298,7 @@ button { border: 0; }
 .campus { position: absolute; inset: 0; }
 .campus-stage { position: absolute; inset: 0; cursor: grab; }
 .campus-stage:active { cursor: grabbing; }
-.campus-stage.is-hot { cursor: pointer; }
-.campus-loading, .campus-hint { margin: 0; font-family: "Courier New", Courier, monospace; font-weight: bold; color: #6a5e4d; text-transform: lowercase; }
+.campus-stage.is-hot { cursor: pointer; }.campus-loading, .campus-hint { margin: 0; font-family: "Courier New", Courier, monospace; font-weight: bold; color: #6a5e4d; text-transform: lowercase; }
 .campus-loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: .95rem; }
 .campus-hint { flex-basis: 100%; text-align: center; font-size: .78rem; pointer-events: none; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -482,6 +461,9 @@ button { border: 0; }
   padding: 90px 8vw 100px 25vw;
   background: radial-gradient(ellipse at 65% 5%, #76705a33, transparent 60%), radial-gradient(#ffefcb09 2px, transparent 3px), #292c29;
   background-size: auto, 30px 30px, auto;
+  /* An opaque background that scrolls with the notes lets the browser scroll them on the GPU. With it fixed to
+     the box instead, Chrome/Edge on normal-DPI screens repaint every card (torn edges, shadows) on every frame. */
+  background-attachment: local;
 }
 /* The site's one paper frame lifts above the notes' scroller (z 30) but stays under their nav and close button. */
 body.journal-open .paper-frame { z-index: 35; }
@@ -523,14 +505,15 @@ body.journal-open .paper-frame { z-index: 35; }
 .topic-track { position: absolute; top: 20px; bottom: 20px; left: 18px; width: 4px; background: #fefbea30; pointer-events: none; }
 .topic-fill { width: 100%; height: 100%; background: var(--yellow); transform: scaleY(0); transform-origin: top; will-change: transform; }
 .journal-spacer { pointer-events: none; }
-/* Paper vine wrapping the progress bar (PaperVine): same box as .topic-track, revealed down to --grow. */
+/* Paper vine wrapping the progress bar (PaperVine): same box as .topic-track. growVineTo() slides each stem's
+   window and the stem inside it in opposite directions to reveal it down to the reading progress (it starts
+   fully hidden), and opens each leaf as the stem reaches it. */
 .vine { position: absolute; top: 20px; left: 0; width: 40px; height: calc(100% - 40px); overflow: visible; pointer-events: none; }
-.vine--stem { clip-path: inset(-4px -20px calc((1 - var(--grow, 0)) * 100%) -20px); }
+.vine-reveal { overflow: hidden; transform: translateY(-100%); will-change: transform; }
+.vine-stem { display: block; width: 100%; height: 100%; overflow: visible; transform: translateY(100%); will-change: transform; }
 .vine--leaves { filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.35)); }
-.vine-leaf {
-  transform-box: fill-box; transform-origin: 0% 50%;
-  transform: scale(clamp(0, (var(--grow, 0) - var(--at)) * 22, 1)); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
-}
+.vine-leaf { transform-box: fill-box; transform-origin: 0% 50%; transform: scale(0); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+.vine-leaf.is-open { transform: scale(1); }
 .topic-list li { position: relative; z-index: 1; }
 .topic-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0; text-align: left; background: transparent; color: #d6d1c3; font-size: .8rem; font-weight: bold; }
 .topic-dot-wrap { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; }

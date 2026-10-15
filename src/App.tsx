@@ -9,6 +9,24 @@ import { projects } from './data/projects';
 
 type Scene = 'room' | 'about' | 'journal';
 
+/**
+ * Fades out the black "powering up..." screen from index.html once the site has settled: fonts and images loaded,
+ * the paper frame painted, and the welcome letter (with its blur) open. Child effects run first, so by now the
+ * letter's dialog is already in the browser's top layer; re-showing the boot screen puts it back above that.
+ */
+function finishBoot() {
+  const boot = document.getElementById('boot');
+  if (!boot) return;
+  if (boot.matches(':popover-open')) { boot.hidePopover(); boot.showPopover(); }
+  const loaded = new Promise(resolve => (document.readyState === 'complete' ? resolve(null) : window.addEventListener('load', resolve, { once: true })));
+  const settled = Promise.all([document.fonts.ready, loaded, new Promise(resolve => setTimeout(resolve, 700))]);
+  const cap = new Promise(resolve => setTimeout(resolve, 4000)); // never hold the site hostage to a slow image
+  Promise.race([settled, cap]).then(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+    boot.classList.add('done');
+    setTimeout(() => boot.remove(), 800);
+  })));
+}
+
 export default function App() {
   const [scene, setScene] = useState<Scene>('about');
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -38,6 +56,7 @@ export default function App() {
   }, [scene]);
 
   useEffect(() => { document.body.classList.toggle('journal-open', scene === 'journal'); return () => document.body.classList.remove('journal-open'); }, [scene]);
+  useEffect(finishBoot, []);
   const project = projects.find(item => item.id === projectId);
 
   return <>

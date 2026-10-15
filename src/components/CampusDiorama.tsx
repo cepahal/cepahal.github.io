@@ -2,8 +2,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
-import { CanvasTexture, MeshLambertMaterial, MeshStandardMaterial, SRGBColorSpace, Vector3 } from 'three';
-import type { BufferGeometry, DirectionalLight, Group, HemisphereLight, Mesh, MeshLambertMaterialParameters, SpotLight } from 'three';
+import { AlwaysDepth, CanvasTexture, DepthTexture, Matrix4, Mesh, MeshLambertMaterial, MeshStandardMaterial, NoBlending, OrthographicCamera, PlaneGeometry, SRGBColorSpace, Scene as ThreeScene, ShaderMaterial, Vector2, Vector3, WebGLRenderTarget } from 'three';
+import type { BufferGeometry, DirectionalLight, Group, HemisphereLight, MeshLambertMaterialParameters, SpotLight } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { campusBuildings } from '../data/campus';
 import type { BuildingId } from '../data/campus';
@@ -12,6 +12,7 @@ import type { Project } from '../data/projects';
 import { corners } from './campus/kit';
 import type { V3 } from './campus/kit';
 import { buildingIds, sites, toWorld } from './campus/landmarks';
+import { createFleet } from './campus/PaperPlanes';
 import { DEPTH, HALF, buildCampus } from './campus/scenery';
 import Glyph from './Glyph';
 import { aimLamp, lamp, onLampFrame } from './HangingLamp';
@@ -187,12 +188,18 @@ function Landmark({ id, geometry, spot, active, intro, reduced, tier, handlers }
     // Pop up during the intro, then lift and glow while hovered or selected.
     const grow = progress(intro.current, popDelay(id), POP), pop = easeOutBack(grow);
     group.scale.set(0.7 + 0.3 * pop, Math.max(0.001, pop), 0.7 + 0.3 * pop);
+    group.visible = grow > 0; // not even a flat footprint before it pops up
     const lift = active ? 0.14 : 0;
     group.position.y = damp(group.position.y, lift, dt, reduced);
-    material.emissiveIntensity = damp(material.emissiveIntensity, active ? 0.18 : 0, dt, reduced);
+    const glow = material.emissiveIntensity;
+    material.emissiveIntensity = damp(glow, active ? 0.18 : 0, dt, reduced);
     if ((intro.current !== null && grow < 1) || group.position.y !== lift) {
       state.invalidate();
       state.gl.shadowMap.needsUpdate = true; // this building's shadow is moving
+      campusChanged();
+    } else if (material.emissiveIntensity !== glow) {
+      state.invalidate();
+      campusChanged();
     }
   });
 
@@ -219,8 +226,15 @@ interface OverlayProps {
 /** Pins the DOM overlays to the scene on every rendered frame: the project dots, and the speech bubble. */
 function OverlayTracker({ activeId, intro, bubbleRef, dotRefs }: OverlayProps) {
   const point = useMemo(() => new Vector3(), []);
+  const seen = useMemo(() => ({ matrix: new Matrix4(), projection: new Matrix4() }), []);
   useFrame(({ camera, size, gl }) => {
     camera.updateMatrixWorld();
+    // The planes keep frames coming, so skip the DOM work unless the view moved, the intro is still popping the
+    // buildings up, or a bubble is open.
+    const moved = !seen.matrix.equals(camera.matrixWorld) || !seen.projection.equals(camera.projectionMatrix);
+    const introRunning = intro.current === null || performance.now() < intro.current + 420 + buildingIds.length * 90 + POP + 100;
+    if (!moved && !introRunning && !activeId) return;
+    seen.matrix.copy(camera.matrixWorld); seen.projection.copy(camera.projectionMatrix);
     const box = gl.domElement.getBoundingClientRect();
     const toScreen = ([x, y, z]: V3) => {
       point.set(x, y, z).project(camera);
@@ -268,7 +282,7 @@ function Lights({ tier }: { tier: Tier }) {
   const sky = useRef<HemisphereLight>(null), sun = useRef<DirectionalLight>(null), spot = useRef<SpotLight>(null);
   const camera = useThree(state => state.camera);
   const invalidate = useThree(state => state.invalidate);
-  useEffect(() => onLampFrame(() => invalidate()), [invalidate]);
+  useEffect(() => onLampFrame(() => { campusChanged(); invalidate(); }), [invalidate]);
   useFrame(() => {
     const f = lamp.focus, swing = (lamp.swing * Math.PI) / 180;
     if (sky.current) sky.current.intensity = 1.7 - 0.5 * f;
@@ -297,6 +311,79 @@ function Lights({ tier }: { tier: Tier }) {
   </>;
 }
 
+// Bumped whenever anything in the campus itself changes (a building lifting, the trees growing, the lamp's light),
+// so the plane compositor knows its cached picture of the campus is stale. Camera moves it detects itself.
+let campusVersion = 0;
+const campusChanged = () => { campusVersion++; };
+
+/**
+ * Draws the paper planes into the map with correct occlusion, without re-rendering the campus every frame. While the
+ * campus is changing (the camera moving, a building lifting, the lamp swaying) each frame is drawn directly, planes
+ * included. Once it settles, the campus (colour and depth) is rendered once into an off-screen target, and every frame
+ * after that just copies it back and draws the planes against its depth, so buildings still hide them.
+ */
+function PlaneCompositor({ flying, light }: { flying: boolean; light: boolean }) {
+  const gl = useThree(state => state.gl), scene = useThree(state => state.scene), camera = useThree(state => state.camera);
+  const invalidate = useThree(state => state.invalidate);
+  const fleet = useMemo(() => createFleet(light ? 2 : 3), [light]);
+  const parts = useMemo(() => {
+    const cache = new WebGLRenderTarget(1, 1, { samples: 4, depthTexture: new DepthTexture(1, 1) });
+    cache.texture.colorSpace = SRGBColorSpace;
+    const copy = new ShaderMaterial({
+      uniforms: { tColor: { value: cache.texture }, tDepth: { value: cache.depthTexture } },
+      vertexShader: 'varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: [
+        'uniform sampler2D tColor;', 'uniform sampler2D tDepth;', 'varying vec2 vUv;',
+        'void main() {', '  gl_FragColor = texture2D(tColor, vUv);', '  gl_FragDepth = texture2D(tDepth, vUv).x;', '  #include <colorspace_fragment>', '}',
+      ].join('\n'),
+      depthFunc: AlwaysDepth, blending: NoBlending, toneMapped: false,
+    });
+    const quad = new Mesh(new PlaneGeometry(2, 2), copy);
+    quad.frustumCulled = false;
+    return { cache, copy, quad, view: new ThreeScene().add(quad), screen: new OrthographicCamera(-1, 1, 1, -1, 0, 1) };
+  }, []);
+  const seen = useRef({ version: -1, matrix: new Matrix4(), projection: new Matrix4(), cached: false });
+  const clock = useRef({ seconds: 0, skip: false });
+  const buffer = useMemo(() => new Vector2(), []);
+
+  useEffect(() => () => fleet.dispose(), [fleet]);
+  useEffect(() => () => {
+    parts.cache.dispose(); parts.cache.depthTexture?.dispose(); parts.copy.dispose(); parts.quad.geometry.dispose();
+  }, [parts]);
+  useEffect(() => { if (flying) invalidate(); }, [flying, invalidate]);
+
+  // Priority 1: runs after everything else has updated, and takes over drawing the frame.
+  useFrame((state, dt) => {
+    const { cache, view, screen } = parts, last = seen.current;
+    gl.getDrawingBufferSize(buffer);
+    if (buffer.x !== cache.width || buffer.y !== cache.height) { cache.setSize(buffer.x, buffer.y); last.cached = false; }
+    camera.updateMatrixWorld();
+    const changed = last.version !== campusVersion || !last.matrix.equals(camera.matrixWorld) || !last.projection.equals(camera.projectionMatrix);
+    if (flying) state.invalidate();
+    // Phones and weaker machines move the planes at 30 fps; a frame with nothing else to show is skipped outright.
+    if (light && flying && !changed && (clock.current.skip = !clock.current.skip)) { clock.current.seconds += dt; return; }
+    if (flying) clock.current.seconds += Math.min(dt, 0.1);
+    fleet.fly(clock.current.seconds);
+    if (changed) {
+      last.version = campusVersion; last.matrix.copy(camera.matrixWorld); last.projection.copy(camera.projectionMatrix);
+      last.cached = false;
+      gl.render(scene, camera);
+    } else {
+      if (!last.cached) {
+        gl.setRenderTarget(cache);
+        gl.render(scene, camera);
+        gl.setRenderTarget(null);
+        last.cached = true;
+      }
+      gl.render(view, screen);
+    }
+    gl.autoClear = false;
+    gl.render(fleet.scene, camera);
+    gl.autoClear = true;
+  }, 1);
+  return null;
+}
+
 interface SceneProps extends Omit<OverlayProps, 'intro'> {
   introOn: boolean;
   reduced: boolean;
@@ -321,7 +408,7 @@ function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, h
     texture.colorSpace = SRGBColorSpace;
     return texture;
   }, []);
-  const trees = useRef<Mesh>(null);
+  const trees = useRef<Mesh>(null), props = useRef<Mesh>(null);
   const intro = useRef<number | null>(null);
   const invalidate = useThree(state => state.invalidate);
 
@@ -336,20 +423,26 @@ function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, h
   const gl = useThree(state => state.gl);
   useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); }, [gl, invalidate]);
   useFrame(state => {
-    const grow = progress(intro.current, 200, 750);
-    trees.current?.scale.set(1, Math.max(0.001, easeOutBack(grow)), 1);
-    if (intro.current !== null && grow < 1) {
+    const grow = progress(intro.current, 200, 750), rise = progress(intro.current, 420, POP);
+    for (const [mesh, t] of [[trees.current, grow], [props.current, rise]] as const) {
+      if (!mesh) continue;
+      mesh.scale.set(1, Math.max(0.001, easeOutBack(t)), 1);
+      mesh.visible = t > 0;
+    } // the filler halls pop up alongside the landmarks
+    if (intro.current !== null && (grow < 1 || rise < 1)) {
       state.invalidate();
       state.gl.shadowMap.needsUpdate = true;
+      campusChanged();
     }
   });
 
   return <>
+    {!reduced && <PlaneCompositor flying={introOn} light={tier === 'low'} />}
     <Lights tier={tier} />
     <CameraRig reduced={reduced} onSpin={onSpin} />
     <mesh geometry={campus.ground} material={matte} receiveShadow />
     <mesh geometry={campus.decals} material={matte} receiveShadow />
-    <mesh geometry={campus.props} material={matte} castShadow receiveShadow />
+    <mesh ref={props} geometry={campus.props} material={matte} castShadow receiveShadow />
     <mesh ref={trees} geometry={campus.trees} material={matte} castShadow receiveShadow />
     {buildingIds.map(id => <Landmark key={id} id={id} geometry={campus.landmarks[id]} spot={spots[id]} active={activeId === id}
       intro={intro} reduced={reduced} tier={tier} handlers={handlers} />)}

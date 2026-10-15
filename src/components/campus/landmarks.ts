@@ -119,29 +119,39 @@ function allen(k: Kit) {
   k.box([0.32, 0.19, 0.02], [0.17, 2.36, 0.4], P.dukeBlue);
 }
 
+/** A dorm range running along x: stone block, gable roof, two storeys of windows on both long sides, chimneys. */
+export function dormWing(k: Kit, x: number, z: number, length: number, litOffset = 0) {
+  k.box([length, 1.1, 0.65], [x, 0, z], P.stone);
+  k.gable([0.77, 0.48, length + 0.04], [x, 1.1, z], P.roof, Math.PI / 2);
+  const count = Math.round(length / 0.42);
+  for (const face of [z - 0.325, z + 0.325]) {
+    for (let i = 0; i < count; i++) {
+      const wx = x - length / 2 + ((i + 0.5) * length) / count;
+      k.box([0.12, 0.17, 0.04], [wx, 0.28, face], P.window);
+      k.box([0.12, 0.17, 0.04], [wx, 0.68, face], (i + litOffset) % 3 === 0 ? P.lit : P.window);
+    }
+  }
+  for (const cx of [x - length * 0.29, x + length * 0.21]) k.box([0.13, 0.36, 0.13], [cx, 1.25, z - 0.12], P.stoneDark);
+}
+
 function few(k: Kit) {
   // Dorm wings around a courtyard that opens east, toward the loop.
-  for (const z of [-1, 1]) {
-    k.box([2.6, 1.1, 0.65], [0, 0, z], P.stone);
-    k.gable([0.77, 0.48, 2.64], [0, 1.1, z], P.roof, Math.PI / 2);
-    for (const face of [z - 0.325, z + 0.325]) {
-      for (let i = 0; i < 6; i++) {
-        const x = -1.05 + i * 0.42;
-        k.box([0.12, 0.17, 0.04], [x, 0.28, face], P.window);
-        k.box([0.12, 0.17, 0.04], [x, 0.68, face], (i + (z > 0 ? 1 : 0)) % 3 === 0 ? P.lit : P.window);
-      }
-    }
-    for (const x of [-0.75, 0.55]) k.box([0.13, 0.36, 0.13], [x, 1.25, z - 0.12], P.stoneDark);
-  }
-  k.box([0.65, 1.1, 1.35], [-0.975, 0, 0], P.stone2);
+  for (const z of [-1, 1]) dormWing(k, 0, z, 2.6, z > 0 ? 1 : 0);
+  // The west wing, shared with the neighbouring quad, has a gate tower with an open archway through its middle.
+  for (const z of [-0.4375, 0.4375]) k.box([0.65, 1.1, 0.475], [-0.975, 0, z], P.stone2);
+  k.box([0.65, 0.4, 0.4], [-0.975, 0.7, 0], P.stone2);
   k.gable([0.77, 0.48, 1.4], [-0.975, 1.1, 0], P.roofDark);
-  k.box([0.42, 1.6, 0.42], [-1.08, 0, 0], P.stone);
-  k.pyramid([0.5, 0.48, 0.5], [-1.08, 1.6, 0], P.roofDark);
-  lancetX(k, -1.29, 0, 0, [0.18, 0.4], P.door);
+  for (const z of [-0.26, 0.26]) k.box([0.48, 1.6, 0.12], [-1.06, 0, z], P.stone);
+  k.box([0.48, 0.9, 0.64], [-1.06, 0.7, 0], P.stone);
+  k.pyramid([0.6, 0.5, 0.72], [-1.06, 1.6, 0], P.roofDark);
+  for (const face of [-1.31, -0.64]) {
+    for (const z of [-0.2, 0.2]) k.box([0.05, 0.7, 0.04], [face, 0, z], P.trim);
+    k.pyramid([0.05, 0.2, 0.46], [face, 0.68, 0], P.trim); // pointed hood over the arch
+  }
   k.box([1.95, 0.02, 1.35], [0.325, 0, 0], P.lawn);
-  k.cylinder(0.05, 0.066, 0.3, 6, [0.32, 0, 0], P.trunk);
-  k.blob(0.31, [0.32, 0.5, 0], P.leaves[1], 0.92);
-  k.blob(0.19, [0.45, 0.68, 0.08], P.leaves[0], 0.9);
+  k.cylinder(0.05, 0.066, 0.3, 6, [0.32, 0, 0.38], P.trunk);
+  k.blob(0.31, [0.32, 0.5, 0.38], P.leaves[1], 0.92);
+  k.blob(0.19, [0.45, 0.68, 0.46], P.leaves[0], 0.9);
   for (const z of [-0.42, 0.42]) k.box([0.3, 0.08, 0.09], [0.85, 0, z], P.trunk);
 }
 
@@ -199,17 +209,18 @@ export interface Site {
   dot: V3;
 }
 
-// Positions follow the real West Campus: chapel at the head of the quad, Perkins and Brodhead on its west
-// side, the loop at the south end with Few Quad west of it and Allen east of it. Wallace Wade and Gross
-// Hall live off-quad, so they sit on the east edge.
+// Laid out from Grant's sketch: the chapel heads a quad flanked by two long halls (the east one turning into an
+// L), Brodhead built onto the back of the west hall with its glass facing west, Perkins east of the L's foot, and
+// Few Quad and Allen across the south end either side of the loop. Wallace Wade and Gross Hall are off-quad, so they sit in the band along the west and
+// north edges.
 export const sites: Record<BuildingId, Site> = {
-  chapel: { at: [0, -2.95], rot: 0, build: chapel, hit: { center: [0, 2.55, -1.65], size: [2.7, 5.1, 5.05] }, anchor: [0, 5.35, 0], dot: [0, 2.6, 0] },
-  perkins: { at: [-2.9, -2.3], rot: Math.PI / 2, build: perkins, hit: { center: [0, 1.15, -0.5], size: [2.2, 2.3, 3.3] }, anchor: [0, 2.55, 0.62], dot: [0, 1, 0] },
-  brodhead: { at: [-2.9, 0.85], rot: Math.PI / 2, build: brodhead, hit: { center: [0, 1.1, 0.39], size: [2.3, 2.25, 2.1] }, anchor: [0, 2.45, 0.25], dot: [0, 1.3, 0.25] },
-  allen: { at: [2.35, 5.1], rot: -Math.PI / 2, build: allen, hit: { center: [0, 1.2, 0.2], size: [3.2, 2.4, 1.4] }, anchor: [0, 2.6, 0.3], dot: [0, 0.95, 0.1] },
-  few: { at: [-3.6, 5.1], rot: 0, build: few, hit: { center: [0, 1, 0], size: [2.65, 2.1, 2.7] }, anchor: [-0.4, 2.3, 0], dot: [-0.3, 0.8, 0] },
-  'wallace-wade': { at: [6.2, 5.12], rot: 0, build: wallaceWade, hit: { center: [0, 0.7, -0.42], size: [2.3, 1.4, 3.6] }, anchor: [-0.98, 1.55, 0.1], dot: [0, 0.3, 0.1] },
-  gross: { at: [6.2, -2.2], rot: -Math.PI / 2, build: gross, hit: { center: [0, 1, 0.18], size: [2.25, 2, 1.8] }, anchor: [0, 2.15, 0], dot: [0, 0.9, 0.1] },
+  chapel: { at: [0.375, -2.3], rot: 0, build: chapel, hit: { center: [0, 2.55, -1.65], size: [2.7, 5.1, 5.05] }, anchor: [0, 5.35, 0], dot: [0, 2.6, 0] },
+  perkins: { at: [6.15, 1.25], rot: 0, build: perkins, hit: { center: [0, 1.15, -0.5], size: [2.2, 2.3, 3.3] }, anchor: [0, 2.55, 0.62], dot: [0, 1, 0] },
+  brodhead: { at: [-3.28, -0.75], rot: -Math.PI / 2, build: brodhead, hit: { center: [0, 1.1, 0.39], size: [2.3, 2.25, 2.1] }, anchor: [0, 2.45, 0.25], dot: [0, 1.3, 0.25] },
+  allen: { at: [2.85, 6.25], rot: Math.PI, build: allen, hit: { center: [0, 1.2, 0.2], size: [3.2, 2.4, 1.4] }, anchor: [0, 2.6, 0.3], dot: [0, 0.95, 0.1] },
+  few: { at: [-2.65, 6.0], rot: 0, build: few, hit: { center: [0, 1, 0], size: [2.65, 2.1, 2.7] }, anchor: [-0.4, 2.3, 0], dot: [-1.06, 1.85, 0] },
+  'wallace-wade': { at: [-6.3, 2.55], rot: 0, build: wallaceWade, hit: { center: [0, 0.7, -0.42], size: [2.3, 1.4, 3.6] }, anchor: [-0.98, 1.55, 0.1], dot: [0, 0.3, 0.1] },
+  gross: { at: [-4.4, -6.35], rot: 0, build: gross, hit: { center: [0, 1, 0.18], size: [2.25, 2, 1.8] }, anchor: [0, 2.15, 0], dot: [0, 0.9, 0.1] },
 };
 
 export const buildingIds = Object.keys(sites) as BuildingId[];
