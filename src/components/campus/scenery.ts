@@ -29,7 +29,7 @@ const DORM: Rect = [-6.55, 4.675, -3.93, 7.325];
 const PLAZAS: Rect[] = [
   [-1.7, -1.75, 2.45, -0.45], // chapel quad, in front of the tower
   [-5.3, -5.35, -3.5, -5.05], // Gross Hall forecourt
-  [-4.95, -1.65, -4.55, 0.15], // Brodhead's terrace side, facing west
+  [-4.95, -2.3, -4.55, 0.8], // Brodhead's terrace side, facing west
 ];
 const PATHS: Rect[] = [
   [QX - 0.175, -1.6, QX + 0.175, -0.45], // tower steps to the cross walk
@@ -39,7 +39,7 @@ const PATHS: Rect[] = [
   [2.75, 4.55, 2.95, 5.45], // down to Allen's door
   [-5.6, 5.88, -0.475, 6.12], // the dorm quad, through Few's archway and courtyard, to the loop
   [2.475, 2.4, 6.3, 2.65], // over to Perkins, past the L
-  [-4.85, -3.1, -1.0, -2.85], [-1.3, -2.85, -1.0, -1.75], [-4.85, -2.85, -4.6, -1.65], // Brodhead round to the chapel
+  [-4.85, -3.1, -1.0, -2.85], [-1.3, -2.85, -1.0, -1.75], [-4.85, -2.85, -4.6, -2.3], // Brodhead round to the chapel
   [-4.55, -5.05, -4.25, -3.1], // Gross Hall down to that walk
   [3.5, -3.5, 4.65, -3.2], // into Duke Gardens
 ];
@@ -47,7 +47,7 @@ const PATHS: Rect[] = [
 const CLEAR: Rect[] = [
   [-1.1, -6.75, 1.85, -1.45], [-1.85, -1.9, 2.6, HALF], // chapel; the quads, walks, loop and drive
   [-2.8, -2.85, -1.6, 1.95], [2.35, -2.85, 3.55, 1.95], [2.9, 0.6, 4.85, 1.85], [4.4, 5.65, HALF, 7.0], // the halls
-  [-5.05, -2.0, -2.6, 0.5], [-5.0, -3.25, -0.9, -2.7], [-4.7, -5.1, -4.1, -3.0], [-5.65, -7.2, -3.15, -4.95], // Brodhead, Gross
+  [-5.05, -2.6, -2.6, 1.1], [-5.0, -3.25, -0.9, -2.7], [-4.7, -5.1, -4.1, -3.0], [-5.65, -7.2, -3.15, -4.95], // Brodhead, Gross
   [-7.6, 0.2, -5.0, 4.15], [-7.4, -2.65, -5.15, -0.3], // Wallace Wade, K-ville
   [-6.7, 4.5, -1.2, 7.45], [-1.6, 5.75, -0.4, 6.25], [1.15, 5.3, 4.6, 6.9], [2.6, 4.4, 3.1, 5.5], // the dorm quads, Allen
   [4.95, -1.05, 7.35, 2.55], [2.3, 2.25, 6.45, 2.8], // Perkins and its walk

@@ -503,7 +503,7 @@ body.journal-open .paper-frame { z-index: 35; }
 .topic-heading { margin: 0 0 22px; font-size: .7rem; text-transform: uppercase; letter-spacing: .16em; color: #e0dacb; font-weight: bold; }
 .topic-list { position: relative; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between; height: min(54vh, 450px); }
 .topic-rail { position: relative; }
-.topic-track { position: absolute; top: 20px; bottom: 20px; left: 18px; width: 4px; background: #fefbea30; pointer-events: none; }
+.topic-track { position: absolute; top: 20px; bottom: 20px; left: 16px; width: 8px; border-radius: 4px; background: #fefbea30; pointer-events: none; }
 .topic-fill { width: 100%; height: 100%; background: var(--yellow); transform: scaleY(0); transform-origin: top; will-change: transform; }
 .journal-spacer { pointer-events: none; }
 /* Paper vine wrapping the progress bar (PaperVine): same box as .topic-track. growVineTo() slides each stem's
@@ -570,7 +570,18 @@ body.journal-open .paper-frame { z-index: 35; }
 }
 /* Phones in either orientation. PaperFrame.tsx uses the same query to halve the border. */
 @media (max-width: 640px), (pointer: coarse) and (max-height: 500px) {
-  .topic-nav { display: none; }
+  /* The contents rail lies on its side as a progress bar along the bottom: the same rail, vine and section dots,
+     turned a quarter so it fills left to right. */
+  .project-scene { padding-bottom: 104px; }
+  .topic-nav {
+    top: auto; left: 30px; right: 30px; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; height: 44px;
+    border-radius: 22px; background: #292c29; box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+  }
+  .topic-heading, .topic-label { display: none; }
+  .topic-rail { position: absolute; left: 8px; top: 2px; width: 40px; height: calc(100vw - 76px); transform-origin: 0 0; transform: rotate(-90deg) translateX(-100%); }
+  .topic-list { height: 100%; }
+  .topic-button { width: 40px; gap: 0; }
+  .vine--leaves { filter: drop-shadow(-1.5px 0 1px rgba(0, 0, 0, 0.35)); }
   .close-project {
     top: 12px; right: 12px; width: 42px; height: 42px; padding: 0; border-radius: 50%; rotate: 0deg;
     background: #292c29e6; box-shadow: 0 3px 0 rgba(0,0,0,0.3); font-size: 2rem; line-height: 1; text-shadow: none;
@@ -586,7 +597,7 @@ body.journal-open .paper-frame { z-index: 35; }
   .cards { --card-w: 200px; padding: 12px 0; }
   .card-description { display: none; }
   .mail-dock { top: 18px; right: 22px; width: 60px; height: 44px; } .mail-dock svg { width: 60px; }
-  .project-scene { padding: 40px 10vw 36px; }
+  .project-scene { padding: 40px 10vw 96px; }
   .intro { --lm: 20px; }
   .room-header { display: flex; align-items: center; justify-content: center; gap: 16px; }
   .view-toggle { right: 26px; bottom: 18px; }
@@ -607,6 +618,12 @@ body.journal-open .paper-frame { z-index: 35; }
   .project-card:hover:not(:focus-visible) { transform: rotate(var(--tilt)); box-shadow: var(--shadow); }
   .mail-dock:hover { transform: none; }
   .view-toggle:hover { transform: none; box-shadow: inset 0 0 0 2px #e6dcc6, 0 4px 0 rgba(100, 80, 55, 0.22); }
+  /* The map's speech bubble takes taps here (see CampusDiorama's Bubble), with a big button to aim a thumb at. */
+  .campus-bubble { pointer-events: auto; cursor: pointer; }
+  .campus-bubble__footer {
+    align-items: center; min-height: 44px; margin-top: 2px; padding: 0 14px; border: 0; border-radius: 9px 11px 8px 10px;
+    background: var(--accent); color: var(--ink); font-size: .74rem; letter-spacing: .02em;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }

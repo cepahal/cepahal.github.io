@@ -67,26 +67,28 @@ function perkins(k: Kit) {
 
 function brodhead(k: Kit) {
   // West Union's battlemented Gothic hall...
-  k.box([2.2, 1.2, 1.25], [0, 0, 0], P.stone);
-  k.gable([1.39, 0.55, 2.32], [0, 1.2, 0], P.roof, Math.PI / 2);
-  for (const x of [-0.75, 0.75]) {
+  // (Half again as wide as the other halls, like the real building, which is mostly glass across its front.)
+  k.box([3.3, 1.2, 1.25], [0, 0, 0], P.stone);
+  k.gable([1.39, 0.55, 3.42], [0, 1.2, 0], P.roof, Math.PI / 2);
+  for (const x of [-1.32, 1.32]) {
     k.box([0.55, 1.3, 0.32], [x, 0, 0.62], P.stone2);
     k.box([0.6, 0.06, 0.36], [x, 1.3, 0.62], P.trim);
     for (const dx of [-0.2, 0, 0.2]) k.box([0.1, 0.12, 0.1], [x + dx, 1.36, 0.75], P.stone2);
     lancetZ(k, x, 0.38, 0.78, [0.16, 0.46], P.lit);
   }
-  for (const side of [-1, 1]) for (const z of [-0.3, 0.25]) lancetX(k, side * 1.1, 0.4, z, [0.14, 0.42], P.window);
+  for (const side of [-1, 1]) for (const z of [-0.3, 0.25]) lancetX(k, side * 1.65, 0.4, z, [0.14, 0.42], P.window);
   // ...with the glass dining hall rising out of it: lit glass, a steel grid, timber fins and a slatted canopy.
-  k.box([0.92, 2, 1.15], [0, 0, 0.25], P.glassLit);
-  eachSide(k, 0.92, 1.15, [0, 0, 0.25], (face, span) => {
-    for (let i = 0; i <= 4; i++) k.box([0.03, 2, 0.03], [-span / 2 + (i * span) / 4, 0, face], P.steel);
+  k.box([1.9, 2, 1.15], [0, 0, 0.25], P.glassLit);
+  eachSide(k, 1.9, 1.15, [0, 0, 0.25], (face, span) => {
+    const bays = Math.max(4, Math.round(span / 0.23)), fins = Math.max(6, Math.round(span / 0.16));
+    for (let i = 0; i <= bays; i++) k.box([0.03, 2, 0.03], [-span / 2 + (i * span) / bays, 0, face], P.steel);
     for (const y of [0.5, 1, 1.5]) k.box([span, 0.03, 0.03], [0, y, face], P.steel);
-    for (let i = 0; i < 6; i++) k.box([0.035, 0.85, 0.07], [-span / 2 + 0.08 + (i * (span - 0.16)) / 5, 1.12, face + 0.04], P.wood);
+    for (let i = 0; i < fins; i++) k.box([0.035, 0.85, 0.07], [-span / 2 + 0.08 + (i * (span - 0.16)) / (fins - 1), 1.12, face + 0.04], P.wood);
   });
-  k.box([1.16, 0.05, 1.4], [0, 2, 0.25], P.trim);
-  for (let i = 0; i < 9; i++) k.box([0.03, 0.07, 1.4], [-0.52 + i * 0.13, 2.05, 0.25], '#DCC09C');
+  k.box([2.14, 0.05, 1.4], [0, 2, 0.25], P.trim);
+  for (let i = 0; i < 16; i++) k.box([0.03, 0.07, 1.4], [-0.98 + i * 0.13, 2.05, 0.25], '#DCC09C');
   // Terrace with bistro tables.
-  for (const [x, z] of [[-0.55, 1.15], [0.05, 1.25], [0.6, 1.12]]) {
+  for (const [x, z] of [[-1.05, 1.15], [-0.4, 1.25], [0.25, 1.12], [0.9, 1.22]]) {
     k.cylinder(0.012, 0.012, 0.22, 5, [x, 0, z], P.steel);
     k.cylinder(0.08, 0.08, 0.02, 8, [x, 0.22, z], P.steel);
   }
@@ -216,7 +218,7 @@ export interface Site {
 export const sites: Record<BuildingId, Site> = {
   chapel: { at: [0.375, -2.3], rot: 0, build: chapel, hit: { center: [0, 2.55, -1.65], size: [2.7, 5.1, 5.05] }, anchor: [0, 5.35, 0], dot: [0, 2.6, 0] },
   perkins: { at: [6.15, 1.25], rot: 0, build: perkins, hit: { center: [0, 1.15, -0.5], size: [2.2, 2.3, 3.3] }, anchor: [0, 2.55, 0.62], dot: [0, 1, 0] },
-  brodhead: { at: [-3.28, -0.75], rot: -Math.PI / 2, build: brodhead, hit: { center: [0, 1.1, 0.39], size: [2.3, 2.25, 2.1] }, anchor: [0, 2.45, 0.25], dot: [0, 1.3, 0.25] },
+  brodhead: { at: [-3.28, -0.75], rot: -Math.PI / 2, build: brodhead, hit: { center: [0, 1.1, 0.39], size: [3.4, 2.25, 2.1] }, anchor: [0, 2.45, 0.25], dot: [0, 1.3, 0.25] },
   allen: { at: [2.85, 6.25], rot: Math.PI, build: allen, hit: { center: [0, 1.2, 0.2], size: [3.2, 2.4, 1.4] }, anchor: [0, 2.6, 0.3], dot: [0, 0.95, 0.1] },
   few: { at: [-2.65, 6.0], rot: 0, build: few, hit: { center: [0, 1, 0], size: [2.65, 2.1, 2.7] }, anchor: [-0.4, 2.3, 0], dot: [-1.06, 1.85, 0] },
   'wallace-wade': { at: [-6.3, 2.55], rot: 0, build: wallaceWade, hit: { center: [0, 0.7, -0.42], size: [2.3, 1.4, 3.6] }, anchor: [-0.98, 1.55, 0.1], dot: [0, 0.3, 0.1] },

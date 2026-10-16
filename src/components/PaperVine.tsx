@@ -6,7 +6,7 @@ import { mulberry32 } from '../random';
 // stem is clipped down to the reading progress, and each leaf unfurls as the stem reaches it (its data-at). The
 // stem is drawn in two layers so it wraps the bar: the stretches behind the bar sit under it in a darker red,
 // the stretches in front sit over it.
-const CX = 20, AMP = 6.5, WAVE = 44; // bar centre (px from the rail's left), wrap radius, height of one full turn
+const CX = 20, AMP = 8.5, WAVE = 48; // bar centre (px from the rail's left), wrap radius, height of one full turn
 const LIGHT = ['#f2675d', '#ef5a51', '#f47167', '#ec534a', '#f0625a'];
 const DARK = ['#cf4139', '#c43a33', '#d6473f', '#bf3a33', '#c9443c'];
 
@@ -80,7 +80,8 @@ export default function PaperVine({ layer, seed, grow }: { layer: 'back' | 'fron
   useEffect(() => {
     const svg = ref.current;
     if (!svg) return;
-    const observer = new ResizeObserver(() => setHeight(Math.round(svg.getBoundingClientRect().height)));
+    // The layout height, not the on-screen box: on phones the rail is turned on its side.
+    const observer = new ResizeObserver(([entry]) => setHeight(Math.round(entry.contentRect.height)));
     observer.observe(svg);
     return () => observer.disconnect();
   }, []);

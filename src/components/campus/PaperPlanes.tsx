@@ -35,7 +35,7 @@ const FLIGHTS: Flight[] = [
     offset: 0, paper: ['#FBFAF6', '#E3DED5'],
   },
   { // over K-ville, past Gross Hall, round the back of the chapel and home behind Brodhead
-    route: [[-6.3, 1.3, -0.5], [-6.6, 1.35, -2.9], [-5.6, 1.4, -4.3], [-3.4, 1.3, -4.15], [-1.6, 1.35, -4.05], [-1.35, 1.3, -3.65], [-1.7, 1.3, -3.3], [-3.6, 1.3, -3.3], [-4.9, 1.3, -2.4], [-5.7, 1.25, -1.2]],
+    route: [[-6.3, 1.3, -0.5], [-6.6, 1.35, -2.9], [-5.6, 1.4, -4.3], [-3.4, 1.3, -4.15], [-1.6, 1.35, -4.05], [-1.35, 1.3, -3.65], [-1.7, 1.3, -3.3], [-3.6, 1.3, -3.35], [-5.25, 1.3, -2.75], [-5.75, 1.25, -1.2]],
     offset: 0.45, paper: ['#ef554c', '#c63b35'],
   },
   { // between the east hall and Perkins, then a loop round Duke Gardens

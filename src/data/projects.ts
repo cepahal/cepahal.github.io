@@ -46,7 +46,7 @@ export const projects: Project[] = [
     sections: [
       { title: 'The idea', text: 'A few seconds of a speech can travel a long way without the question that came before it or the qualification that came after. At HackNC, four of us built ZoomOut: you paste a clip link (or text it to an iMessage bot), and it tries to find the full recording, locate the matching passage, and show you roughly 30 seconds on either side.' },
       { title: 'How it works', text: 'The backend pulls the media with yt-dlp and FFmpeg, has Gemini transcribe it with word-level timestamps, then searches Exa and YouTube for longer recordings. An alignment step looks for distinctive runs of words that match between the clip and each candidate source. A set of evidence rules turns all of that into a low, moderate, or high confidence rating.' },
-      { title: 'My part: the frontend', text: 'I owned the frontend. I wrote the first draft of the Next.js app, then built the analysis report page, the loading states, and the homepage. The piece I spent the most time on is the alignment animation on the landing page, where excerpt cards line up against the full recording in five steps. It shows what the tool does faster than a paragraph could.' },
+      { title: 'Contributions', text: 'I owned the frontend. I wrote the first draft of the Next.js app, then built the analysis report page, the loading states, and the homepage. The piece I spent the most time on is the alignment animation on the landing page, where excerpt cards line up against the full recording in five steps. It shows what the tool does faster than a paragraph could.' },
       { title: 'What I learned', text: 'Most of the design work went into showing uncertainty. A report that says “moderate confidence” has to show why, so the page puts the matched passages, timestamps, and limitations right next to the rating. Our rule for the project was to never claim more than the evidence supports, and that applied to the UI as much as the backend.' },
     ],
   },
@@ -137,7 +137,7 @@ export const projects: Project[] = [
     github: 'https://github.com/brainnourish/FirstStep',
     sections: [
       { title: 'The idea', text: 'FirstStep is an iOS app for parents of kids up to age five. It builds a daily schedule around your child’s age, serves a tip of the day, lays out developmental milestones with their full normal ranges, and has an Ask tab for questions.' },
-      { title: 'My part: UI and flow', text: 'We built it for a Duke startup pitch event. Garner built the backend, and I did all of the UI and the user flowchart, mapping how a parent moves from onboarding to the Today screen, the schedule, the milestone timeline, and the Ask tab. I also did the visual pass on the SwiftUI theme and views.' },
+      { title: 'Contributions', text: 'We built it for a Duke startup pitch event. Garner built the backend, and I did all of the UI and the user flowchart, mapping how a parent moves from onboarding to the Today screen, the schedule, the milestone timeline, and the Ask tab. I also did the visual pass on the SwiftUI theme and views.' },
     ],
   },
   {
@@ -148,7 +148,7 @@ export const projects: Project[] = [
     demo: { label: 'Play on itch.io', href: 'https://cepahal.itch.io/rebloom' },
     sections: [
       { title: 'The idea', text: 'Re:Bloom is a game inside a game. It moves between a pixel-art world and a 3D room built around an old CRT computer, a stack of floppy disks, and a keypad, and you solve puzzles to help heal the world around your player.' },
-      { title: 'My part', text: 'This was a team entry for TSA Video Game Design 2026. I did everything except the music and the art, which meant all of the programming and puzzle design in Unity.' },
+      { title: 'Contributions', text: 'This was a team entry for TSA Video Game Design 2026. I did everything except the music and the art, which meant all of the programming and puzzle design in Unity.' },
       { title: 'A pixel world on a curved screen', text: 'The pixel-art game plays on the CRT inside the 3D room. A second camera renders the 2D world to a texture, and the curved screen mesh is UV-mapped so that image wraps the bulge of the glass instead of sitting flat on top of it.' },
       { title: 'Retro edge scrolling', text: 'Movement had to feel like an old console. The map scrolls with the player until it reaches its border, then stops while the character keeps walking toward the edge. When the player turns back, the character walks to the center of the screen before the map starts scrolling again. That meant clamping the camera to the map bounds and handing control back and forth between moving the map and moving the character.' },
       { title: 'Playing it', text: 'It runs in the browser on itch.io, and fullscreen works best. Once you’re in the room, press Q to look around.' },
@@ -162,7 +162,7 @@ export const projects: Project[] = [
     demo: { label: 'Play on itch.io', href: 'https://cepahal.itch.io/wizardstower' },
     sections: [
       { title: 'The idea', text: 'Wizard’s Tower is a two-player co-op game for TSA Video Game Design (2024–25). Two players start at the top of a wizard’s tower and work their way down past patrolling guards.' },
-      { title: 'My part', text: 'It was a team project, and I did everything except the music, including all of the programming and the pixel art on the title screen.' },
+      { title: 'Contributions', text: 'It was a team project, and I did everything except the music, including all of the programming and the pixel art on the title screen.' },
       { title: 'Making co-op work', text: 'Both players share one keyboard, one on WASD and one on the arrow keys, so the hard part was design rather than input. Each floor had to need both players, without either one feeling like a passenger, and stay challenging without one player’s mistake making the game feel unfair to the other.' },
       { title: 'Guards and spotlights', text: 'Guards either patrol between waypoints or chase players using Unity’s NavMesh. Each guard sees with a fan of raycasts that stops at the first wall it hits, and the spotlight cones use 2D shadow casting so the light is cut off by walls in the same way. That keeps what players see and what guards can see in sync: if you are in the light, you are caught.' },
       { title: 'Playing it', text: 'It runs in the browser on itch.io. Play it fullscreen.' },

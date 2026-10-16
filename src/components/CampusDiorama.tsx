@@ -460,10 +460,11 @@ function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, h
   </>;
 }
 
-function Bubble({ spot, focused, bubbleRef }: { spot: Spot; focused: boolean; bubbleRef: RefObject<HTMLDivElement | null> }) {
+function Bubble({ spot, focused, bubbleRef, onOpen }: { spot: Spot; focused: boolean; bubbleRef: RefObject<HTMLDivElement | null>; onOpen: () => void }) {
   const { project } = spot;
-  // Purely visual and click-through: clicks on it are caught by the stage (see onClickCapture below).
-  return <div className="campus-bubble" ref={bubbleRef} style={{ '--accent': project.accent } as CSSProperties} aria-hidden="true">
+  // With a mouse it is purely visual and click-through: clicks on it are caught by the stage (see onClickCapture
+  // below). On touch screens it takes taps itself, so a tap anywhere on it (its footer is a thumb-sized button) opens.
+  return <div className="campus-bubble" ref={bubbleRef} style={{ '--accent': project.accent } as CSSProperties} aria-hidden="true" onClick={onOpen}>
     <div className={`campus-bubble__card${focused ? ' is-focused' : ''}`}>
       <span className="campus-bubble__place">{spot.name}</span>
       <img className="campus-bubble__art" src={project.cover || projectIllustration(project.illustration)} alt="" draggable="false" />
@@ -575,7 +576,7 @@ export default function CampusDiorama({ active, onOpenProject }: CampusDioramaPr
       <Scene key={tier} activeId={activeId} introOn={active} reduced={reduced} tier={tier} bubbleRef={bubbleRef} dotRefs={dotRefs} onSpin={setSpinning} handlers={handlers} />
     </Canvas>
     {spotList.map((spot, i) => <span key={spot.id} className="campus-dot" ref={el => { dotRefs.current[i] = el; }} aria-hidden="true" />)}
-    {activeSpot && <Bubble key={activeSpot.id} spot={activeSpot} focused={focused === activeSpot.id} bubbleRef={bubbleRef} />}
+    {activeSpot && <Bubble key={activeSpot.id} spot={activeSpot} focused={focused === activeSpot.id} bubbleRef={bubbleRef} onOpen={() => open(activeSpot.id, null)} />}
     <ul className="visually-hidden" aria-label="Projects on the campus map">
       {spotList.map(spot => <li key={spot.id}>
         <button type="button" onFocus={() => setFocused(spot.id)} onBlur={() => setFocused(current => current === spot.id ? null : current)}
