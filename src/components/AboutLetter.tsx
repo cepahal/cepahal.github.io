@@ -7,11 +7,13 @@ interface AboutLetterProps {
   dialogRef: RefObject<HTMLDialogElement | null>;
   onClose: () => void;
   onExplore: () => void;
+  /** Called the moment the letter starts closing, so the room can start building itself under it. */
+  onLeave: () => void;
   /** "Skip to the projects": switch the room to the plain card view before the letter zips away. */
   onSkip: () => void;
 }
 
-export default function AboutLetter({ visible, dialogRef, onClose, onExplore, onSkip }: AboutLetterProps) {
+export default function AboutLetter({ visible, dialogRef, onClose, onExplore, onSkip, onLeave }: AboutLetterProps) {
   const stageRef = useRef<HTMLDivElement>(null), letterRef = useRef<HTMLElement>(null), dockRef = useRef<HTMLElement | null>(null);
   const [opened, setOpened] = useState(false), [zipping, setZipping] = useState(false), [autoOpen, setAutoOpen] = useState(false), [hasOpened, setHasOpened] = useState(false);
 
@@ -30,7 +32,7 @@ export default function AboutLetter({ visible, dialogRef, onClose, onExplore, on
     if (zipping) return;
     const dialog = dialogRef.current, stage = stageRef.current;
     if (!dialog || !stage) { action === 'explore' ? onExplore() : onClose(); return; }
-    setOpened(false); setAutoOpen(false); setZipping(true);
+    setOpened(false); setAutoOpen(false); setZipping(true); onLeave();
     const stageRect = stage.getBoundingClientRect();
     const dockRect = dockRef.current?.getBoundingClientRect();
     const dx = dockRect ? dockRect.left + dockRect.width / 2 - stageRect.left - stageRect.width / 2 : 0;

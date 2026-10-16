@@ -46,7 +46,9 @@ const POLAR = 0.96; // camera angle from straight down: an isometric-style ~35°
 const START_AZIMUTH = 0.55;
 const START: V3 = [40 * Math.sin(POLAR) * Math.sin(START_AZIMUTH), 40 * Math.cos(POLAR), 40 * Math.sin(POLAR) * Math.cos(START_AZIMUTH)];
 const TAIL = 16;
-const popDelay = (id: BuildingId) => 420 + buildingIds.indexOf(id) * 90;
+const popDelay = (id: BuildingId) => buildingIds.indexOf(id) * 90;
+// OrbitControls can nudge the camera by a rounding error on alternate frames; that is not a move.
+const near = (a: Matrix4, b: Matrix4) => a.elements.every((v, i) => Math.abs(v - b.elements[i]) < 1e-6);
 const POP = 560;
 
 // The widest and tallest the diorama gets on screen over a full spin, so the zoom never pumps while rotating.
@@ -231,8 +233,8 @@ function OverlayTracker({ activeId, intro, bubbleRef, dotRefs }: OverlayProps) {
     camera.updateMatrixWorld();
     // The planes keep frames coming, so skip the DOM work unless the view moved, the intro is still popping the
     // buildings up, or a bubble is open.
-    const moved = !seen.matrix.equals(camera.matrixWorld) || !seen.projection.equals(camera.projectionMatrix);
-    const introRunning = intro.current === null || performance.now() < intro.current + 420 + buildingIds.length * 90 + POP + 100;
+    const moved = !near(seen.matrix, camera.matrixWorld) || !near(seen.projection, camera.projectionMatrix);
+    const introRunning = intro.current === null || performance.now() < intro.current + buildingIds.length * 90 + POP + 100;
     if (!moved && !introRunning && !activeId) return;
     seen.matrix.copy(camera.matrixWorld); seen.projection.copy(camera.projectionMatrix);
     const box = gl.domElement.getBoundingClientRect();
@@ -334,7 +336,11 @@ function PlaneCompositor({ flying, light }: { flying: boolean; light: boolean })
       vertexShader: 'varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: [
         'uniform sampler2D tColor;', 'uniform sampler2D tDepth;', 'varying vec2 vUv;',
-        'void main() {', '  gl_FragColor = texture2D(tColor, vUv);', '  gl_FragDepth = texture2D(tDepth, vUv).x;', '  #include <colorspace_fragment>', '}',
+        'void main() {', '  vec4 cached = texture2D(tColor, vUv);',
+        // The target holds colour already multiplied by alpha (blended in linear light); un-multiply, convert to sRGB,
+        // and multiply back, which is what drawing straight to the canvas produces for the soft shadow's edges.
+        '  gl_FragColor = vec4(cached.a > 0.0 ? cached.rgb / cached.a : vec3(0.0), cached.a);',
+        '  gl_FragDepth = texture2D(tDepth, vUv).x;', '  #include <colorspace_fragment>', '  gl_FragColor.rgb *= gl_FragColor.a;', '}',
       ].join('\n'),
       depthFunc: AlwaysDepth, blending: NoBlending, toneMapped: false,
     });
@@ -358,7 +364,7 @@ function PlaneCompositor({ flying, light }: { flying: boolean; light: boolean })
     gl.getDrawingBufferSize(buffer);
     if (buffer.x !== cache.width || buffer.y !== cache.height) { cache.setSize(buffer.x, buffer.y); last.cached = false; }
     camera.updateMatrixWorld();
-    const changed = last.version !== campusVersion || !last.matrix.equals(camera.matrixWorld) || !last.projection.equals(camera.projectionMatrix);
+    const changed = last.version !== campusVersion || !near(last.matrix, camera.matrixWorld) || !near(last.projection, camera.projectionMatrix);
     if (flying) state.invalidate();
     // Phones and weaker machines move the planes at 30 fps; a frame with nothing else to show is skipped outright.
     if (light && flying && !changed && (clock.current.skip = !clock.current.skip)) { clock.current.seconds += dt; return; }
@@ -423,7 +429,7 @@ function Scene({ activeId, introOn, reduced, tier, bubbleRef, dotRefs, onSpin, h
   const gl = useThree(state => state.gl);
   useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); }, [gl, invalidate]);
   useFrame(state => {
-    const grow = progress(intro.current, 200, 750), rise = progress(intro.current, 420, POP);
+    const grow = progress(intro.current, 0, 750), rise = progress(intro.current, 0, POP);
     for (const [mesh, t] of [[trees.current, grow], [props.current, rise]] as const) {
       if (!mesh) continue;
       mesh.scale.set(1, Math.max(0.001, easeOutBack(t)), 1);

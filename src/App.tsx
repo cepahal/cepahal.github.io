@@ -38,7 +38,10 @@ export default function App() {
   const closeAbout = useCallback(() => setScene(current => current === 'about' ? 'room' : current), []);
   const [plainRequests, setPlainRequests] = useState(0);
   const skipToCards = useCallback(() => setPlainRequests(n => n + 1), []);
-  const openAbout = useCallback(() => setScene('about'), []);
+  // True from the moment the letter starts closing until it opens again: the room is coming into view.
+  const [leaving, setLeaving] = useState(false);
+  const openAbout = useCallback(() => { setLeaving(false); setScene('about'); }, []);
+  const leaveAbout = useCallback(() => setLeaving(true), []);
   const openProject = useCallback(async (id: string, opener: HTMLElement | null) => {
     if (busy.current || scene !== 'room') return;
     busy.current = true; returnFocus.current = opener; setTransitioning(true);
@@ -73,8 +76,8 @@ export default function App() {
     <div className="grain" aria-hidden="true" />
     {/* One frame for the whole site; it lifts above the project notes while they're open (body.journal-open). */}
     <PaperFrame />
-    <Room active={scene === 'room'} plainRequests={plainRequests} onOpenProject={openProject} onOpenAbout={openAbout} />
-    <AboutLetter visible={scene === 'about'} dialogRef={dialogRef} onClose={closeAbout} onExplore={closeAbout} onSkip={skipToCards} />
+    <Room active={scene === 'room' || (scene === 'about' && leaving)} plainRequests={plainRequests} onOpenProject={openProject} onOpenAbout={openAbout} />
+    <AboutLetter visible={scene === 'about'} dialogRef={dialogRef} onClose={closeAbout} onExplore={closeAbout} onSkip={skipToCards} onLeave={leaveAbout} />
     {scene === 'journal' && project && <ProjectJournal key={project.id} project={project} onClose={closeProject} />}
     <TransitionScreen visible={transitioning} />
     <CustomCursor modalTarget={dialogRef.current} modalOpen={scene === 'about'} />

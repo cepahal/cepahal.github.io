@@ -372,7 +372,8 @@ button { border: 0; }
   pointer-events: none; transition: opacity .65s;
   mask-image: radial-gradient(ellipse, #000, transparent 72%);
 }
-.intro.open .intro-rays { opacity: 0; }
+.intro.open .intro-rays, .intro.zipping .intro-rays { opacity: 0; }
+.intro.zipping .intro-rays { transition-duration: .2s; }
 .mail-stage {
   position: relative; width: min(440px, 86vw); height: 380px; transition: height .7s; transform-origin: center center;
 }
