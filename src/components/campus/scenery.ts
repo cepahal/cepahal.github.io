@@ -7,7 +7,7 @@ import { buildLandmark, buildingIds, dormWing } from './landmarks';
 import { P, STONE_VARIANTS } from './palette';
 
 /** The block is 2 × HALF world units square; north is −z. */
-export const HALF = 7.5;
+export const HALF = 8.5;
 // Soil layers under the lawn, top to bottom: thickness, inset from the edge, colour.
 const STRATA = [[0.24, 0, '#A4D596'], [0.3, 0.03, '#F5E9D1'], [0.5, 0.06, '#E8CDA1'], [0.55, 0.1, '#D5AB87'], [0.6, 0.15, '#BE9478']] as const;
 export const DEPTH = STRATA.reduce((sum, [h]) => sum + h, 0);
@@ -21,8 +21,12 @@ const LOOP: Spot = [QX, 5.75]; // the bus loop at the south end, between Few Qua
 const POND: Spot = [5.7, -5.6];
 const GAZEBO: Spot = [5.0, -3.35];
 const BEDS: Spot[] = [[6.7, -3.2], [4.5, -6.7]];
-const BLOSSOMS: Spot[] = [[4.3, -4.8], [6.95, -4.6], [7.0, -6.8], [5.5, -7.05], [6.9, -2.3], [4.2, -2.4]];
-const TENTS: Spot[] = [[-6.9, -2.3], [-6.3, -2.2], [-5.7, -2.35], [-6.85, -1.5], [-6.2, -1.4], [-5.6, -1.55], [-6.6, -0.65], [-5.9, -0.6]];
+const BLOSSOMS: Spot[] = [[4.3, -4.8], [6.95, -4.6], [7.0, -6.8], [5.5, -7.05], [4.3, -0.9], [4.2, -2.4]];
+// K-ville: the tents on the lawn in front of Cameron, between it and Wallace Wade.
+const TENTS: Spot[] = [[-7.95, -1.75], [-7.45, -1.67], [-6.95, -1.77], [-6.45, -1.65], [-5.95, -1.75], [-7.7, -1.12], [-7.2, -1.05], [-6.7, -1.15], [-6.2, -1.07], [-5.7, -1.13]];
+// The lawn between Perkins and the School of Medicine, opening off Abele Quad's east walk.
+const EAST_LAWN: Rect = [2.475, 2.65, 6.45, 5.6];
+const EAST_TREES: Spot[] = [[3.35, 3.0], [4.6, 5.05], [5.75, 2.95]];
 // A second dorm quad sharing Few Quad's west wing (Few's gate arch leads between their courtyards).
 const DORM: Rect = [-6.55, 4.675, -3.93, 7.325];
 
@@ -39,6 +43,7 @@ const PATHS: Rect[] = [
   [2.75, 4.55, 2.95, 5.45], // down to Allen's door
   [-5.6, 5.88, -0.475, 6.12], // the dorm quad, through Few's archway and courtyard, to the loop
   [2.475, 2.4, 6.3, 2.65], // over to Perkins, past the L
+  [2.475, 3.68, 6.5, 3.92], // across the east lawn to the School of Medicine's door
   [-4.85, -3.1, -1.0, -2.85], [-1.3, -2.85, -1.0, -1.75], [-4.85, -2.85, -4.6, -2.3], // Brodhead round to the chapel
   [-4.55, -5.05, -4.25, -3.1], // Gross Hall down to that walk
   [3.5, -3.5, 4.65, -3.2], // into Duke Gardens
@@ -48,9 +53,10 @@ const CLEAR: Rect[] = [
   [-1.1, -6.75, 1.85, -1.45], [-1.85, -1.9, 2.6, HALF], // chapel; the quads, walks, loop and drive
   [-2.8, -2.85, -1.6, 1.95], [2.35, -2.85, 3.55, 1.95], [2.9, 0.6, 4.85, 1.85], [4.4, 5.65, HALF, 7.0], // the halls
   [-5.05, -2.6, -2.6, 1.1], [-5.0, -3.25, -0.9, -2.7], [-4.7, -5.1, -4.1, -3.0], [-5.65, -7.2, -3.15, -4.95], // Brodhead, Gross
-  [-7.6, 0.2, -5.0, 4.15], [-7.4, -2.65, -5.15, -0.3], // Wallace Wade, K-ville
+  [-8.45, -0.85, -5.1, 4.6], [-8.45, -4.65, -5.0, -0.8], // Wallace Wade, Cameron and K-ville
   [-6.7, 4.5, -1.2, 7.45], [-1.6, 5.75, -0.4, 6.25], [1.15, 5.3, 4.6, 6.9], [2.6, 4.4, 3.1, 5.5], // the dorm quads, Allen
   [4.95, -1.05, 7.35, 2.55], [2.3, 2.25, 6.45, 2.8], // Perkins and its walk
+  [5.95, -2.6, HALF, -1.1], [6.3, 2.2, HALF, 5.4], [2.3, 2.55, 6.6, 5.7], // Wilkinson, the School of Medicine, the east lawn
   [4.75, -6.45, 6.65, -4.75], [4.5, -3.9, 5.5, -2.85], [4.9, -5.0, 5.8, -3.7], [3.4, -3.65, 4.75, -3.05], // the gardens
   [6.35, -3.45, 7.05, -2.95], [4.15, -6.95, 4.85, -6.45],
   ...BLOSSOMS.map(([x, z]): Rect => [x - 0.3, z - 0.3, x + 0.3, z + 0.3]),
@@ -93,6 +99,7 @@ function decals() {
   for (const lawn of [[-1.35, -1.45, -0.05, -0.75], [0.8, -1.45, 2.1, -0.75]] as Rect[]) flat(k, lawn, 0.026, P.lawn);
   flat(k, [-1.45, -0.15, 2.2, 4.3], 0.014, P.lawn); // Abele Quad: trees in the north half, crossing paths in the south
   flat(k, [DORM[0] + 0.65, DORM[1] + 0.65, DORM[2], DORM[3] - 0.65], 0.016, P.lawn); // the dorm quad's courtyard
+  flat(k, EAST_LAWN, 0.016, P.lawn);
   for (const path of PATHS) flat(k, path, 0.024, P.path);
   strip(k, [-1.45, 2.0], [2.2, 4.3], 0.28, 0.024, P.path);
   strip(k, [2.2, 2.0], [-1.45, 4.3], 0.28, 0.024, P.path);
@@ -206,11 +213,13 @@ function trees() {
   for (const x of [QX - 1.2, QX + 1.2]) for (const z of [0.15, 0.65, 1.15, 1.6]) tree(k, x, z, 'round', 0.8, rand); // north half of Abele Quad
   for (const [x, z] of [[-5.3, 5.55], [-4.55, 6.45]]) tree(k, x, z, 'round', 0.75, rand); // the dorm quad's courtyard
   for (const [x, z] of BLOSSOMS) tree(k, x, z, 'blossom', 0.85, rand);
+  for (const [x, z] of EAST_TREES) tree(k, x, z, 'round', 0.85, rand);
   // Duke Forest everywhere else.
-  for (let gx = -7.2; gx <= 7.2; gx += 0.46) {
-    for (let gz = -7.2; gz <= 7.2; gz += 0.46) {
+  const edge = HALF - 0.25;
+  for (let gx = -edge + 0.05; gx <= edge; gx += 0.46) {
+    for (let gz = -edge + 0.05; gz <= edge; gz += 0.46) {
       const x = gx + (rand() - 0.5) * 0.3, z = gz + (rand() - 0.5) * 0.3;
-      if (rand() < 0.22 || Math.abs(x) > 7.25 || Math.abs(z) > 7.25 || CLEAR.some(rect => inside(rect, x, z))) continue;
+      if (rand() < 0.22 || Math.abs(x) > edge || Math.abs(z) > edge || CLEAR.some(rect => inside(rect, x, z))) continue;
       const roll = rand();
       tree(k, x, z, roll < 0.3 ? 'pine' : roll < 0.42 ? 'bush' : 'round', 0.78 + rand() * 0.38, rand);
     }

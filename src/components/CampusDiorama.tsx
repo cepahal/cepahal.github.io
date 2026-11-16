@@ -205,7 +205,7 @@ function Landmark({ id, geometry, spot, active, intro, reduced, tier, handlers }
     }
   });
 
-  return <group position={[site.at[0], 0, site.at[1]]} rotation-y={site.rot}>
+  return <group position={[site.at[0], 0, site.at[1]]} rotation-y={site.rot} scale={site.scale ?? 1}>
     <group ref={body}>
       <mesh geometry={geometry} material={material} castShadow receiveShadow />
       {spot && <mesh visible={false} position={site.hit.center}

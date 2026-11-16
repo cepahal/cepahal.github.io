@@ -37,6 +37,49 @@ export function projectIllustration(kind: Project['illustration'], detail = fals
 // Add projects here: the room carousel, campus map and journal are generated from this list.
 export const projects: Project[] = [
   {
+    id: 'offhand', title: 'Offhand', type: 'Hardware', accent: '#80EF80',
+    summary: 'A touchless dental scan viewer you drive with hand gestures, built at HackPrinceton.',
+    tools: ['ESP32', 'PAJ7620', 'Python', 'three.js', 'NiiVue', 'Preact', 'TypeScript', 'Node.js'],
+    cover: 'images/offhand.jpg', illustration: 'cad', building: 'medicine',
+    github: 'https://github.com/cepahal/offhand',
+    demo: { label: 'Try it at offhand.health', href: 'https://offhand.health/' },
+    sections: [
+      { title: 'The idea', text: 'Before HackPrinceton Fall ’26, we drove to every dentist office within ten miles of Princeton and asked what slows them down. The same answer kept coming up: during a procedure the dentist can’t scrub out to touch a mouse, so an assistant spins the CBCT scan for them, and details get lost in the back-and-forth. Offhand lets the dentist turn, zoom, and peel back a patient’s 3D scan by moving a hand over a small sensor, without touching anything.' },
+      { title: 'How it works', text: 'An ESP32 reads a PAJ7620 infrared gesture sensor and sends gestures and hand position to a local Node hub 20 times a second. A Python pipeline splits each ToothFairy2 scan into a separate mesh for every structure (28 to 39 per case), so each tooth can be peeled away or pinned with a note, alongside a 16-bit volume for the slice views. The viewer draws the model in three.js and the slices in NiiVue in the same millimetre coordinates, so a note pinned on a slice lands on the same spot on the model. Holding a hand still over the sensor for 1.5 seconds starts voice commands for notes, prescriptions, and texts to the patient.' },
+      { title: 'Contributions', text: 'I set up the codebase and the gesture board, converted the scans into GLB meshes and NIfTI volumes, and built the dental review frontend. I also reworked the gesture calibration and moved voice from a wave to a hover, because waves fired by accident.' },
+      { title: 'Gestures that repeat', text: 'The sensor reports your hand’s return trip as a gesture of its own. Swiping up twice means coming back down in between, and every push arrives paired with a pull. Blocking the opposite direction for a moment fixed repeats but broke deliberate reversals. What worked was treating the first stroke as the intent and absorbing exactly one return stroke after it, timed to each user’s rhythm. Replayed against more than 700 recorded gestures, accidental back-and-forth moves fell from 141 to 36. The camera also sits on a spring, so one swipe is a crisp step and a run of swipes blends into a glide.' },
+      { title: 'Trying it', text: 'The repo runs without the board: a keyboard mock drives the same gesture path as the sensor. Every scan comes from the public ToothFairy2 dataset, and Offhand is a research prototype, not a diagnostic tool.' },
+    ],
+  },
+  {
+    id: 'gamegrip', title: 'GameGrip', type: 'Hardware', accent: '#80EF80',
+    summary: 'A motion strap that turns any toy into a game controller. 1st place at Cube’s Buildathon.',
+    tools: ['ESP32', 'MPU6050', 'Python', 'three.js', 'Tailwind CSS', 'GSAP'],
+    cover: 'images/gamegrip.jpg', illustration: 'game', building: 'cameron',
+    sections: [
+      { title: 'The idea', text: 'GameGrip is an ESP32 and an MPU6050 on a strap. Buckle it onto a toy and the toy becomes the controller: at our demo, people played Minecraft by swinging a real toy sword. It took first place at Cube’s Buildathon.' },
+      { title: 'How it works', text: 'Calibration starts with the strap held still, which teaches the detector the gyro’s bias and noise. Then come three practice swings, each a three-second countdown and a short recording, which teach it how far your arm turns in one swing. Live, the detector uses only the gyroscope and adds up rotation while the toy is moving, so slow and fast swings both count, and finishing in a different pose doesn’t confuse it.' },
+      { title: 'Contributions', text: 'I built the strap’s hardware and the swing detector, along with the calibration website, the bridge that connects them, and the sports demo we showed the judges.' },
+      { title: 'The calibration site', text: 'Calibration is the first thing a player sees, so we made it the show. The site is a three.js scene in a green 2000s skate-and-boombox style, with comic-book countdowns, a pulse locked to the music, and a camera that pulls back through a city and into a concert while you swing. A small Python server runs the detector and turns each line it prints into a server-sent event, so every countdown number appears exactly when Python prints it. If no strap is plugged in, the page says so instead of hanging.' },
+      { title: 'The sports demo', text: 'Judging gave us 45 seconds, so I built a baseball and boxing party game with almost no HUD. Once calibration finishes, the demo picks up the strap on its own: one player swings the strap while the other uses the keyboard, and the device table is already set up for a second strap.' },
+    ],
+  },
+  {
+    id: 'baton', title: 'Baton', type: 'Software', accent: '#7C9EC3',
+    summary: 'A shared canvas for a team’s live Claude Code, Codex, and Cursor sessions.',
+    tools: ['TypeScript', 'Node.js', 'React', 'React Flow', 'Fastify', 'WebSocket', 'Tailscale', 'Vitest'],
+    cover: 'images/baton.jpg', illustration: 'web', building: 'wilkinson',
+    github: 'https://github.com/cepahal/baton',
+    sections: [
+      { title: 'The idea', text: 'Coding agents are single-player. When a team runs Claude Code, Codex, and Cursor at the same time, nobody can see what the other agents are doing, and passing work between them means copying prompts around. Baton streams everyone’s live sessions onto one shared canvas, where you can watch them, leave sticky notes, and hand work from one session to another.' },
+      { title: 'How it works', text: 'Each teammate runs a small daemon next to their agents. It reads the logs each agent already writes (Claude Code’s JSONL transcripts, and Codex’s rollouts and SQLite history, opened read-only) through one adapter per agent, which turns them into a single event format. The daemons stream to one team server over Tailscale, and the canvas in the browser is built on React Flow.' },
+      { title: 'Contributions', text: 'Baton is my own project. I designed and built all of it: the daemon and its agent adapters, the team server, the canvas, and the handoff and sharing system.' },
+      { title: 'Handoffs', text: 'Drag one session onto another to hand work over. The receiver accepts on the team server, and their daemon writes the handoff into that session’s folder as a markdown prompt, plus a changes.patch if the sender attached code. Beta testing showed that handoffs only worked between checkouts of the same repo, which missed the point, so now they work between any two sessions. Applying the patch automatically is only offered when both sides share the repo and the base commit, and it always runs from the command line, never from the website.' },
+      { title: 'Sharing on purpose', text: 'Nothing leaves a machine until its owner runs baton share in a repo. Sessions anywhere else are read locally but never sent, baton pause stops everything within about a second, and a session shared by mistake can be deleted for everyone. Sticky notes hold files, images, or text, show up for every teammate, and can be dragged onto a session to hand it a copy.' },
+      { title: 'Status', text: 'Baton is in beta with a few teammates. The repo includes step-by-step setup guides for the team server and for each teammate, written so you can hand them straight to your coding agent.' },
+    ],
+  },
+  {
     id: 'zoomout', title: 'ZoomOut', type: 'Software', accent: '#7C9EC3',
     summary: 'A HackNC app that finds the full recording behind a viral political clip.',
     tools: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'Framer Motion', 'FastAPI', 'Gemini'],

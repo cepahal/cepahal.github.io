@@ -7,6 +7,9 @@ export const campusBuildings = {
   few: 'Few Quad',
   'wallace-wade': 'Wallace Wade Stadium',
   gross: 'Gross Hall',
+  cameron: 'Cameron Indoor Stadium',
+  wilkinson: 'Wilkinson Building',
+  medicine: 'School of Medicine',
 } as const;
 
 export type BuildingId = keyof typeof campusBuildings;

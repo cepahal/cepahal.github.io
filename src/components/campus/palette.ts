@@ -4,6 +4,8 @@ export const P = {
   roof: '#676E7A', roofDark: '#5A606C',
   window: '#434957', lit: '#F3D69A', glass: '#B9D6E2', glassDark: '#7FA6BC', mullion: '#FFFFFF', door: '#5E4C45',
   glassLit: '#F2CF8C', steel: '#3D424A', wood: '#C48A58',
+  // Cameron's pale arena roof; Wilkinson's blue glass, white louvers and metal trim.
+  roofPale: '#C9CCD2', glassBlue: '#6E8FB8', louver: '#EEF0F2', metal: '#A4A9B0',
   pink: '#F5B4C5', sky: '#A9D3F3', butter: '#FBE29B', lilac: '#C9B8EA', mint: '#BFE8CF', peach: '#F6CFB6',
   dukeBlue: '#4F69BE', tire: '#5E5D6E', vent: '#9C9DA6',
   lawn: '#BDE5AA', path: '#F7EDD9', plaza: '#E9E1D3', road: '#C9C5D2', line: '#FFFFFF', bed: '#C9A183',
